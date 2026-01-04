@@ -42,8 +42,8 @@ function readResponse() {
 
 async function askChatbot(query) {
   await sendQuery(query);
-  return readResponse()
+  console.log(readResponse())
 }
 
-// sample query, outputs to console:
-console.log(askChatbot('What can you do?'))
+// sample query, outputs to console 
+askChatbot('What can you do?')
