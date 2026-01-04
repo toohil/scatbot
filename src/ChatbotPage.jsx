@@ -113,6 +113,7 @@ const COMMON_QUESTIONS = [
 ];
 
 function ChatbotPage({ onBack }) {
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [messages, setMessages] = useState(() => [
     {
@@ -186,6 +187,12 @@ function ChatbotPage({ onBack }) {
     ]);
   };
 
+  const submitQuery = () => {
+    // grab text from input field
+    // submit to askChatbot function from worker.j
+  }
+  // will also need to handle reading response
+
   const atEnd = currentIndex === totalSteps - 1;
 
   return (
@@ -228,15 +235,16 @@ function ChatbotPage({ onBack }) {
         </section>
 
         <section className="chat-controls">
-          {/* Disabled free-text input for future work */}
           <div className="input-row">
             <input
-              className="text-input disabled"
+              className="text-input"
               type="text"
               placeholder="Free-text questions will be available in a later version. For now, please use the buttons below."
-              disabled
             />
-          </div>
+            <button className="chip" type="button" onClick={submitQuery}>
+              Go
+            </button>
+          </div>          
 
           {!atEnd ? (
             <div className="quick-replies">
