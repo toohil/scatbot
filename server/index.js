@@ -62,6 +62,54 @@ app.post("/api/session", async (_req, res) => {
   }
 });
 
+  app.post("/api/session/:sessionId/message", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { role, content } = req.body;
+
+    if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
+    if (role !== "user" && role !== "bot")
+      return res.status(400).json({ error: "role must be 'user' or 'bot'" });
+    if (!content || typeof content !== "string")
+      return res.status(400).json({ error: "content must be a string" });
+
+    await pool.execute(
+      `INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)`,
+      [sessionId, role, content]
+    );
+
+    // optional: update session last_seen so you know it was active
+    await pool.execute(
+      `UPDATE sessions SET last_seen = CURRENT_TIMESTAMP WHERE session_id = ?`,
+      [sessionId]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save message" });
+  }
+});
+
+app.get("/api/session/:sessionId/messages", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    const [rows] = await pool.execute(
+      `SELECT role, content, created_at
+       FROM messages
+       WHERE session_id = ?
+       ORDER BY created_at ASC`,
+      [sessionId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
+});
+
 const PORT = 5174;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

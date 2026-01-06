@@ -16,7 +16,7 @@ npm install
 cd server && npm install
 
 
-2- set up database
+2) set up database
 
 mysql -u root -p < db/schema.sql
 
@@ -31,7 +31,7 @@ cp server/.env.example server/.env
 cd server
 node index.js
 
-5) start the front end
+5) start the frontend
 
 npm run dev
 
@@ -40,3 +40,12 @@ npm run dev
 USE chatbot_app;
 SELECT * FROM sessions ORDER BY created_at DESC;
 ```
+
+USE chatbot_app;
+
+SELECT \* FROM sessions ORDER BY created_at DESC;
+
+SELECT session_id, role, content, created_at
+FROM messages
+ORDER BY created_at DESC
+LIMIT 20;

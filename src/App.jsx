@@ -13,18 +13,18 @@ function App() {
     try {
       setStarting(true);
 
-      // Call your backend (running on 5174)
+      // Create a session on the backend (stored in MySQL)
       const res = await fetch("http://localhost:5174/api/session", {
         method: "POST",
       });
 
       if (!res.ok) throw new Error("Failed to create session");
 
-      const data = await res.json();
+      const data = await res.json(); // { session_id, created_at, last_seen }
       setSession(data);
       setScreen("chat");
     } catch (e) {
-      alert("Couldn’t start a session. Is the server running?");
+      alert("Couldn’t start a session. Is the backend server running?");
     } finally {
       setStarting(false);
     }
@@ -35,7 +35,10 @@ function App() {
       {screen === "landing" ? (
         <LandingPage onStart={startChat} starting={starting} />
       ) : (
-        <ChatbotPage onBack={() => setScreen("landing")} session={session} />
+        <ChatbotPage
+          onBack={() => setScreen("landing")}
+          session={session}
+        />
       )}
     </div>
   );

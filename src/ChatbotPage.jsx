@@ -1,5 +1,6 @@
 // src/ChatbotPage.jsx
 import { useState } from "react";
+import { useEffect, useRef } from "react";
 
 const STEPS = [
   {
@@ -112,7 +113,7 @@ const COMMON_QUESTIONS = [
   },
 ];
 
-function ChatbotPage({ onBack }) {
+function ChatbotPage({ onBack, session }) {
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [messages, setMessages] = useState(() => [
@@ -127,7 +128,7 @@ function ChatbotPage({ onBack }) {
   const currentStep = STEPS[currentIndex];
   const totalSteps = STEPS.length;
 
-
+  
   const handleNext = () => {
     if (currentIndex < totalSteps - 1) {
       const nextIndex = currentIndex + 1;
@@ -166,6 +167,10 @@ function ChatbotPage({ onBack }) {
       },
     ]);
   };
+  
+  
+
+
 
   const handleFaqSelect = (index) => {
     // Append the selected FAQ question and its answer to the chat messages
@@ -194,6 +199,42 @@ function ChatbotPage({ onBack }) {
   // will also need to handle reading response
 
   const atEnd = currentIndex === totalSteps - 1;
+const lastSavedIndexRef = useRef(0);
+
+useEffect(() => {
+  // You must have the session id available (passed from App)
+  const sessionId = session?.session_id;
+  if (!sessionId) return;
+
+  // Only send messages that were added since last time
+  const newMessages = messages.slice(lastSavedIndexRef.current);
+  if (newMessages.length === 0) return;
+
+  const sendOne = async (msg) => {
+  
+    const role =
+      msg.sender === "user" || msg.role === "user" ? "user" : "bot";
+
+    const content =
+      msg.text ??
+      msg.content ??
+      msg.message ??
+      (typeof msg === "string" ? msg : JSON.stringify(msg));
+
+    // Fire-and-forget: don’t block the UI
+    fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role, content }),
+    }).catch(() => {});
+  };
+
+  // Send all new messages
+  newMessages.forEach(sendOne);
+
+  // Mark them as saved (so we don’t resend)
+  lastSavedIndexRef.current = messages.length;
+}, [messages, session]);
 
   return (
     <div className="chat-page">
