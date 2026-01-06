@@ -194,12 +194,14 @@ function ChatbotPage({ onBack, session }) {
 
   const submitQuery = () => {
     // grab text from input field
-    // submit to askChatbot function from worker.j
+    // submit to askChatbot function from worker.js
   }
   // will also need to handle reading response
 
   const atEnd = currentIndex === totalSteps - 1;
 const lastSavedIndexRef = useRef(0);
+
+const bottomRef = useRef(null);
 
 useEffect(() => {
   // You must have the session id available (passed from App)
@@ -235,6 +237,10 @@ useEffect(() => {
   // Mark them as saved (so we don’t resend)
   lastSavedIndexRef.current = messages.length;
 }, [messages, session]);
+
+useEffect(() => {
+  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);
 
   return (
     <div className="chat-page">
@@ -273,6 +279,7 @@ useEffect(() => {
               </p>
             </div>
           ))}
+          <div ref={bottomRef} />
         </section>
 
         <section className="chat-controls">
@@ -280,7 +287,7 @@ useEffect(() => {
             <input
               className="text-input"
               type="text"
-              placeholder="Free-text questions will be available in a later version. For now, please use the buttons below."
+              placeholder="Ask a question"
             />
             <button className="chip" type="button" onClick={submitQuery}>
               Go

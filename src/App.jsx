@@ -10,25 +10,32 @@ function App() {
   const [starting, setStarting] = useState(false);
 
   const startChat = async () => {
-    try {
-      setStarting(true);
+  setStarting(true);
 
-      // Create a session on the backend (stored in MySQL)
-      const res = await fetch("http://localhost:5174/api/session", {
-        method: "POST",
-      });
+  try {
+    // Try create a session on the backend (stored in MySQL)
+    const res = await fetch("http://localhost:5174/api/session", {
+      method: "POST",
+    });
 
-      if (!res.ok) throw new Error("Failed to create session");
+    if (!res.ok) throw new Error("Failed to create session");
 
-      const data = await res.json(); // { session_id, created_at, last_seen }
-      setSession(data);
-      setScreen("chat");
-    } catch (e) {
-      alert("Couldn’t start a session. Is the backend server running?");
-    } finally {
-      setStarting(false);
-    }
-  };
+    const data = await res.json(); // { session_id, created_at, last_seen }
+    setSession({ ...data, offline: false });
+    setScreen("chat");
+  } catch (e) {
+    // Fallback: allow chat to open even if backend is down
+    const localId =
+      (globalThis.crypto && crypto.randomUUID && crypto.randomUUID()) ||
+      `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    setSession({ session_id: localId, offline: true });
+    setScreen("chat");
+  } finally {
+    setStarting(false);
+  }
+};
+
 
   return (
     <div className="app-root">
