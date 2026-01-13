@@ -175,7 +175,7 @@ body {
 /* Landing page */
 
 .page-container {
-  max-width: 1100px;
+  max-width: 80%;
   width: 100%;
   background: #ffffff;
   border-radius: 18px;
@@ -292,7 +292,7 @@ body {
 /* Chat page */
 
 .chat-page {
-  max-width: 1100px;
+  max-width: 80%;
   width: 100%;
   background: #ffffff;
   border-radius: 18px;

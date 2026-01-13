@@ -1,5 +1,25 @@
 // src/ChatbotPage.jsx
 import { useState } from "react";
+import { sendQuery, readResponse } from "./chatfunctions";
+
+async function askChatbot(query) {
+  await sendQuery(query);
+  const response = readResponse();
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: `user-more-${currentStep.id}`,
+      sender: "user",
+      text: query,
+    },
+    {
+      id: `bot-more-${currentStep.id}`,
+      sender: "bot",
+      title: currentStep.title + " — Freeform input",
+      text: response,
+    },
+  ]);
+};
 
 const STEPS = [
   {
@@ -190,6 +210,8 @@ function ChatbotPage({ onBack }) {
   const submitQuery = () => {
     // grab text from input field
     // submit to askChatbot function from worker.j
+    const textInput = document.getElementById('freeTextInput');
+    askChatbot(textInput);
   }
   // will also need to handle reading response
 
@@ -239,7 +261,8 @@ function ChatbotPage({ onBack }) {
             <input
               className="text-input"
               type="text"
-              placeholder="Free-text questions will be available in a later version. For now, please use the buttons below."
+              placeholder="Enter text."
+              id="freeTextInput"
             />
             <button className="chip" type="button" onClick={submitQuery}>
               Go
