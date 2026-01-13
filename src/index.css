@@ -44,14 +44,23 @@ button {
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.18s, transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+  will-change: transform, box-shadow;
 }
 button:hover {
   border-color: #646cff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(100, 108, 255, 0.08);
 }
-button:focus,
+button:active,
+button.pressed {
+  transform: translateY(0) scale(0.985);
+  box-shadow: none;
+  opacity: 0.95;
+}
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(100,108,255,0.14);
 }
 
 @media (prefers-color-scheme: light) {

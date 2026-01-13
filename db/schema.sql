@@ -1,0 +1,22 @@
+CREATE DATABASE IF NOT EXISTS chatbot_app;
+USE chatbot_app;
+
+CREATE TABLE IF NOT EXISTS sessions (
+  session_id VARCHAR(64) PRIMARY KEY,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_seen  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  session_id VARCHAR(64) NOT NULL,
+  role ENUM('user','bot') NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX(session_id),
+  CONSTRAINT fk_messages_session
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+    ON DELETE CASCADE
+);
+
+
