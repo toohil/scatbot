@@ -6,6 +6,7 @@ import fs from 'fs';
 // let file = fs.readFileSync('SDJC01-PIL01 Stool Sample.docx.txt')
 // const instructions = file.toString().split('\n')
 
+// manual input of instructions for now, encountered issue parsing file when previewing in browser.
 const instructions = "Instructions for Collecting Stool Sample (bowel motion sample)\
   The stool sample should be as fresh as possible, ideally produced the morning of your visit.\
   If this is not possible, a sample from the evening/night before may be saved and stored in a fridge. This is not ideal and may interfere with analysis of the sample; therefore a sample from the morning of your visit is preferred\
