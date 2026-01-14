@@ -1,0 +1,49 @@
+﻿Description: UCC Logo RGB_NEW 
+
+Information Sheet
+‘Exploring Research Onboarding Conditions’
+ 
+Thank you for considering participating in this research project. The purpose of this document is to explain to you what the work is about and what your participation would involve, so as to enable you to make an informed choice.
+ 
+1.What is the purpose of this study?
+The purpose of this study is to investigate how effective chatbots and human researchers are at introducing research participants to research and preparing them for participation.  We are using stool sampling as an example. 
+
+
+2.What will I be asked to do if I take part? 
+Should you choose to participate,you will complete a research onboarding session with either a chatbot or a researcher at the School of Applied Psychology, Cork Enterprise Centre. After completing either human or chatbot onboarding, you will be asked to complete a short online survey about your experience, understanding and confidence in completing sampling. The onboarding and survey should take approximately 20-30 minutes.
+ 
+3.Do I have to take part?
+Participation in this study is completely voluntary, and  should you choose to do so you can withdraw at any point up until 7 days after completing the survey, at which point your data is anonymised and cannot be identified.
+ 
+4.How will my information be used and stored?
+All of the information collected will be kept confidential and will be available only to researchers Andrea Marshall and Lily McDonnell and supervisors Samantha Dockray and Sabin Tabrica. The data will be made anonymous before it is  shared with the development team, Dylan O’Toole and Saoirse O’Donovan. This data will be stored on the University College Cork OneDrive system and subsequently on the UCC server. The data will be stored for a period of 10 years. The data will be used in the research dissertations of Andrea Marshall and Lily McDonnell and developers Dylan O’Toole and Saoirse O’Donovan. The information you provide may contribute to research publications and/or conference presentations. 
+
+
+5.What are the benefits of taking part?
+This research will contribute to theory and research methods by improving understanding of how chatbot-assisted onboarding can support participants in psychobiological and sensitive research. It will provide insights comparing chatbot and human researcher onboarding in relation to comfort, comprehension and self-efficacy, offering insights into the potential for emerging conversational agents to enhance research participants’ experience and engagement in onboarding.
+ 
+6. Are there any risks to taking part?
+We do not anticipate any negative outcomes from participating in this study Should you have any concerns arising from participating in the research, the contact details for our research supervisors are available.
+ 
+7. Who has reviewed this study?
+This study has obtained ethical approval from the UCC School of Applied Psychology Ethics Committee.
+ 
+8.What if I have questions or concerns?
+If you have any queries about this research, you can contact the principal investigator: Professor Samantha Dockray at s.dockray@ucc.ie
+
+
+If you have a concern about how we have handled your personal data, you are entitled to this raise this with the Data Protection Commission.
+https://www.dataprotection.ie/
+ 
+ You may also contact:
+UCC'S Data Protection Officer (DPO) is Catriona O'Sullivan, Information Compliance Manager, University College Cork, 4 Carrigside, College Road, Cork, Ireland.
+Telephone:  +353 (0)21 4903949* Email:   gdpr@ucc.ie
+The Data Controller for this study is Samantha Dockray s.dockray@ucc.ie
+
+
+ 9.How can I make a complaint?
+If you have a complaint about how this research was conducted please contact in writing:
+The Ethics Committee,
+School of Applied Psychology,
+University College Cork,
+Cork
