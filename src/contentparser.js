@@ -4,7 +4,7 @@
 // 3. run embedding model.
 
 async function getMedlineData(keyword) {
-  const url = "https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&term="+keyword;
+  const url = 'https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&term='+keyword;
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -28,19 +28,19 @@ async function getNHSData(keyword) {
 
 async function getLabTestsData(keyword) {
   // handling for labtestsonline. Plan here is to scrape file.
-  const index_url = "https://labtestsonline.org.uk/tests-index"
-  const search_url = "https://labtestsonline.org.uk/search?keywords="+keyword
+  const index_url = 'https://labtestsonline.org.uk/tests-index'
+  const search_url = 'https://labtestsonline.org.uk/search?keywords='+keyword
 
 }
 
 function readFile(filename) {
   let file = fs.readFileSync(filename)
-  const instruct_arr = file.toString().split("\r\n")
+  const instruct_arr = file.toString().split('\r\n')
   const instruct_clean = []
 
   for (var i = 0; i < instruct_arr.length; i++) {
     const instruction = instruct_arr.at(i)
-    if (instruction != "") {
+    if (instruction != '') {
       instruct_clean.push(instruction)
     }
   }
