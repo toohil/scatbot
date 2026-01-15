@@ -1,7 +1,11 @@
-import { pipeline } from "@huggingface/transformers";
-import fs from 'fs';
+import { pipeline, topk } from "@huggingface/transformers";
 import { LocalIndex } from 'vectra';
+import { DatabaseSync } from 'node:sqlite'
 import path from 'node:path';
+// import fs from 'fs'; - for content parsing.
+
+const __dirname = import.meta.dirname;
+const data_dir = path.join(__dirname, "db")
 
 class GenericPipeline {
 
@@ -38,7 +42,7 @@ class VectorPipeline extends GenericPipeline {
   }
   
   async createIndex() {
-    const index = new LocalIndex(path.join(process.cwd(), 'index'))
+    const index = new LocalIndex(data_dir, "vector_index.json")
     if (!(await index.isIndexCreated())) {
       await index.createIndex();
     };
@@ -46,24 +50,24 @@ class VectorPipeline extends GenericPipeline {
   };
 
   async loadModel() {
-    await this.createIndex()
-    await super.loadModel()
+    await this.createIndex();
+    await super.loadModel();
     return "Model loaded."
   };
   
-  async createEmbedding(text) {
+  async createVector(text) {
     const output = await this.pipe(
         text,
         { pooling: 'mean' },
     );
-    return Array.from(output.data);
+    console.log("Created vector: "+text);
+    return Array.from(output.data)
   };
 
   async addToIndex(input) {
-    const vector = await this.createEmbedding(input)
-    console.log("Created vector: "+input)
-    const db_check = await this.index.queryItems(vector, 3);
-    if (db_check.length > 0 && db_check[0].score >= 1) {
+    const vector = await this.createVector(input)
+    const results = await this.queryIndex(vector, 0);
+    if (results.length > 0 && results[0].score >= 1) {
       return "Item Already in Index: "+input
     } else {
       await this.index.insertItem({
@@ -72,30 +76,29 @@ class VectorPipeline extends GenericPipeline {
       })
       return "Item Added to Index: "+input
     }
-    
   };
 
-  async queryIndex(text) {
-    const vector = await this.createEmbedding(text);
-    const results = await this.index.queryItems(vector, 3);
-    if (results.length > 0) {
-        for (const result of results) {
-            console.log(`[${result.score}] ${result.item.metadata.input}`);
-        }
-    } else {
-        console.log('No results found.');
-    }
-  }
-}
+  async queryIndex(vector, count) {
+    const vectors = await this.index.queryItems(vector, count);
+    const results = [];
+    if (vectors.length > 0) {
+      for (const result of vectors) {
+        const result_dict = {};
+        result_dict['text'] = result.item.metadata.input;
+        result_dict['score'] = result.score;
+        results.push(result_dict);
+      };
+    };
+    return results
+  };
 
-// TEST FUNCTION CALLS - VECTORPIPELINE
-const pipe1 = new VectorPipeline()
-console.log(await pipe1.loadModel())
-console.log(await pipe1.addToIndex('apple'))
-console.log(await pipe1.addToIndex('oranges'))
-console.log(await pipe1.addToIndex('red'))
-console.log(await pipe1.addToIndex('blue'))
-await pipe1.queryIndex('green')
+  async getTextMatches(text) {
+    const vector_input = await this.createVector(text)
+    const vector_matches = await this.queryIndex(vector_input, 2)
+    return vector_matches
+  }
+
+}
 
 class ChatbotPipeline extends GenericPipeline {
   
@@ -127,6 +130,59 @@ class ChatbotPipeline extends GenericPipeline {
     // }
   };
 }
+
+class ChatbotLogger {
+
+  // Treating this as a class so we can implement multiple logging options:
+  // * mysql is likely most stable, but requires starting an additional server on the host
+  // * node:sqlite library is experimental currently, but would allow pure node frontend/backend, could very easily build a binary
+  //   -> https://nodejs.org/api/single-executable-applications.html
+  //   -> https://nodejs.org/api/sqlite.html
+
+  constructor() {
+    this.path = path.join(data_dir,'chat_messages.db')
+    this.fileDb = new DatabaseSync(this.path);
+
+    this.fileDb.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        session_id VARCHAR(64) PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_seen  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `)
+
+    this.fileDb.exec(`
+      CREATE TABLE IF NOT EXISTS messages (
+        session_id VARCHAR(64) PRIMARY KEY,
+        role ENUM('system','user','bot') NOT NULL,
+        content TEXT NOT NULL,
+      )
+
+    `)
+
+  }
+
+  static getpath() {
+    return this.path
+  }
+
+
+
+  // function: check for db, init if exists
+
+  // function: log messages from input array
+  // need to check for duplicates etc.
+
+}
+
+// TEST FUNCTION CALLS - VECTORPIPELINE
+const pipe1 = new VectorPipeline()
+console.log(await pipe1.loadModel())
+console.log(await pipe1.addToIndex('apple'))
+console.log(await pipe1.addToIndex('oranges'))
+console.log(await pipe1.addToIndex('red'))
+console.log(await pipe1.addToIndex('blue'))
+console.log(await pipe1.getTextMatches('green'))
 
 // TEST FUNCTION CALLS - CHATBOTPIPELINE
 const chat_model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct'
