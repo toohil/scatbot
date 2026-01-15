@@ -8,17 +8,6 @@ import path from 'node:path';
 //   await index.createIndex();
 // }
 
-// const extractor = await pipeline('feature-extraction', 'Xenova/jina-embeddings-v2-small-en');
-
-// async function getVector(instruction) {
-//     const output = await extractor(
-//         instruction,
-//         { pooling: 'mean' },
-//     );
-//     return output;
-// }
-
-
 // async function addToIndex(text) {
 //   const text_vector = await getVector(text)
 //   await index.insertItem({
@@ -80,22 +69,18 @@ import path from 'node:path';
 
 // console.log(readFile('study_docs/SDJC01-PIL01 Stool Sample.docx.txt'))
 
-class ChatbotPipeline {
-  
-  constructor() {
-    this.task = 'text-generation';
-    this.model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
 
-    this.chatlog = [
-    {"role": "system", "content": "You are a research assistant in a psychological survey. \
-      Your specific task is to provide instructions and answers to participants regarding a stool sampling procedure. \
-      If you do not know the answer, communicate this to the user."}
-    ];
+// console.log(rag_output)
 
-    this.status = false;
-  };
+class GenericPipeline {
 
-  async loadChatbot() {
+  constructor(task, model) {
+    this.task = task
+    this.model = model
+    this.status = false
+  }
+
+  async loadModel() {
     this.pipe = await pipeline(
       this.task,
       this.model,
@@ -105,11 +90,43 @@ class ChatbotPipeline {
     return this.status
   };
 
-  static isChatbotReady() {
+  static isModelReady() {
     if (this.status == false) {
       return false
     }
     return true
+  };
+}
+
+class VectorPipeline extends GenericPipeline {
+
+  constructor() {
+    const task = 'feature-extraction';
+    const model = 'Xenova/jina-embeddings-v2-small-en';
+    super(task, model)
+  }
+
+  async getEmbeddings(text) {
+    const output = await pipe(
+        text,
+        { pooling: 'mean' },
+    );
+    return output;
+  }
+
+}
+
+
+class ChatbotPipeline extends GenericPipeline {
+  
+  constructor(model, system_prompt) {
+
+    const task = 'text-generation';
+    super(task, model)
+
+    this.chatlog = [
+    {"role": "system", "content": system_prompt}
+    ];
   };
 
   async askChatbot(query) {
@@ -131,13 +148,15 @@ class ChatbotPipeline {
   };
 }
 
-const pipe = new ChatbotPipeline();
+// TEST FUNCTION CALLS - CHATBOTPIPELINE
+const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct'
+const system_prompt = "You are a research assistant in a psychological survey. \
+      Your specific task is to provide instructions and answers to participants regarding a stool sampling procedure. \
+      If you do not know the answer, communicate this to the user."
+const pipe = new ChatbotPipeline(model, system_prompt);
 await pipe.loadModel()
-const response = await pipe.askChatbot("What can you do?")
+const prompt = "What can you do?"
+const response = await pipe.askChatbot(prompt)
 console.log(response)
 
-// export { sendQuery, readResponse, askChatbot }
-
-
-// console.log(rag_output)
-// sample query, outputs to console 
+// here we have prompt, response as const vars - could easily log in main code.
