@@ -22,7 +22,7 @@ async function getMedlineData(keyword) {
 }
 
 async function getNHSData(keyword) {
-  // handling for NHS API - this will need an API key - env variable?
+  // handling for NHS API - this will need an API key - env variable? Will eventually be handled in admin API.
 
 }
 
