@@ -32,3 +32,20 @@ async function getLabTestsData(keyword) {
   const search_url = "https://labtestsonline.org.uk/search?keywords="+keyword
 
 }
+
+function readFile(filename) {
+  let file = fs.readFileSync(filename)
+  const instruct_arr = file.toString().split("\r\n")
+  const instruct_clean = []
+
+  for (var i = 0; i < instruct_arr.length; i++) {
+    const instruction = instruct_arr.at(i)
+    if (instruction != "") {
+      instruct_clean.push(instruction)
+    }
+  }
+
+  return instruct_clean
+}
+
+console.log(readFile('study_docs/SDJC01-PIL01 Stool Sample.docx.txt'))

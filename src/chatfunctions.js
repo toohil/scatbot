@@ -3,75 +3,6 @@ import fs from 'fs';
 import { LocalIndex } from 'vectra';
 import path from 'node:path';
 
-// const index = new LocalIndex(path.join(process.cwd(), 'index'))
-// if (!(await index.isIndexCreated())) {
-//   await index.createIndex();
-// }
-
-// async function addToIndex(text) {
-//   const text_vector = await getVector(text)
-//   await index.insertItem({
-//         vector: text_vector,
-//         metadata: { text },
-//     });
-// }
-
-// async function queryIndex(text) {
-//     const vector = await getVector(text);
-//     const results = await index.queryItems(vector, 3);
-//     if (results.length > 0) {
-//         for (const result of results) {
-//             console.log(`[${result.score}] ${result.item.metadata.text}`);
-//         }
-//     } else {
-//         console.log('No results found.');
-//     }
-// }
-
-// async function addItemsToIndex(input_arr) {
-//   const vector_arr = await extractor(
-//         input_arr,
-//         { pooling: 'mean' },
-//     );
-//   for (var i = 0; i < input_arr.length; i++) {
-//     const text = input_arr.at(i)
-//     await index.insertItem({
-//       vector: vector_arr[i],
-//       metadata: { text },
-//     })
-//   }
-// }
-
-// async function TryThis() {
-//   const items = ['apple','oranges','red','blue'];
-//   await addItemsToIndex(items)
-//   const output = await queryIndex('green')
-//   console.log(output)
-// }
-
-// await TryThis()
-
-
-// function readFile(filename) {
-//   let file = fs.readFileSync(filename)
-//   const instruct_arr = file.toString().split("\r\n")
-//   const instruct_clean = []
-
-//   for (var i = 0; i < instruct_arr.length; i++) {
-//     const instruction = instruct_arr.at(i)
-//     if (instruction != "") {
-//       instruct_clean.push(instruction)
-//     }
-//   }
-
-//   return instruct_clean
-// }
-
-// console.log(readFile('study_docs/SDJC01-PIL01 Stool Sample.docx.txt'))
-
-
-// console.log(rag_output)
-
 class GenericPipeline {
 
   constructor(task, model) {
@@ -105,17 +36,61 @@ class VectorPipeline extends GenericPipeline {
     const model = 'Xenova/jina-embeddings-v2-small-en';
     super(task, model)
   }
+  
+  async createIndex() {
+    const index = new LocalIndex(path.join(process.cwd(), 'index'))
+    if (!(await index.isIndexCreated())) {
+      await index.createIndex();
+    };
+    this.index = index
+  };
 
-  async getEmbeddings(text) {
-    const output = await pipe(
+  async loadModel() {
+    await this.createIndex()
+    await super.loadModel()
+    return "Model loaded."
+  };
+  
+  async createEmbeddings(text) {
+    const output = await this.pipe(
         text,
         { pooling: 'mean' },
     );
-    return output;
-  }
+    return Array.from(output.data);
+  };
 
+  async addToIndex(input) {
+    const vector = await this.createEmbeddings(input)
+    console.log("Created vector: "+input)
+    await this.index.insertItem({
+      vector: vector,
+      metadata: { input },
+    })
+    // }
+    return "Item Added to Index: "+input
+  };
+
+  async queryIndex(text) {
+    const vector = await this.createEmbeddings(text);
+    const results = await this.index.queryItems(vector, 3);
+    if (results.length > 0) {
+        for (const result of results) {
+            console.log(`[${result.score}] ${result.item.metadata.input}`);
+        }
+    } else {
+        console.log('No results found.');
+    }
+  }
 }
 
+// TEST FUNCTION CALLS - VECTORPIPELINE
+const pipe1 = new VectorPipeline()
+console.log(await pipe1.loadModel())
+console.log(await pipe1.addToIndex('apple'))
+console.log(await pipe1.addToIndex('oranges'))
+console.log(await pipe1.addToIndex('red'))
+console.log(await pipe1.addToIndex('blue'))
+const output = await pipe1.queryIndex('green')
 
 class ChatbotPipeline extends GenericPipeline {
   
@@ -158,5 +133,4 @@ await pipe.loadModel()
 const prompt = "What can you do?"
 const response = await pipe.askChatbot(prompt)
 console.log(response)
-
 // here we have prompt, response as const vars - could easily log in main code.
