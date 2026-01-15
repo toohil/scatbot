@@ -1,26 +1,6 @@
 // src/ChatbotPage.jsx
 import { useState } from "react";
 import { useEffect, useRef } from "react";
-import { sendQuery, readResponse } from "./chatfunctions";
-
-async function askChatbot(query) {
-  await sendQuery(query);
-  const response = readResponse();
-  setMessages((prev) => [
-    ...prev,
-    {
-      id: `user-more-${currentStep.id}`,
-      sender: "user",
-      text: query,
-    },
-    {
-      id: `bot-more-${currentStep.id}`,
-      sender: "bot",
-      title: currentStep.title + " — Freeform input",
-      text: response,
-    },
-  ]);
-};
 
 const STEPS = [
   {

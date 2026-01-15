@@ -2,7 +2,7 @@ import { pipeline, topk } from "@huggingface/transformers";
 import { LocalIndex } from 'vectra';
 import { DatabaseSync } from 'node:sqlite'
 import path from 'node:path';
-// import fs from 'fs'; - for content parsing.
+import fs from 'fs';
 
 const __dirname = import.meta.dirname;
 const data_dir = path.join(__dirname, "db")
@@ -60,13 +60,13 @@ class VectorPipeline extends GenericPipeline {
         text,
         { pooling: 'mean' },
     );
-    console.log("Created vector: "+text);
+    // console.log("Created vector: "+text);
     return Array.from(output.data)
   };
 
   async addToIndex(input) {
     const vector = await this.createVector(input)
-    const results = await this.queryIndex(vector, 0);
+    const results = await this.queryIndex(vector, 1);
     if (results.length > 0 && results[0].score >= 1) {
       return "Item Already in Index: "+input
     } else {
@@ -79,7 +79,7 @@ class VectorPipeline extends GenericPipeline {
   };
 
   async queryIndex(vector, count) {
-    const vectors = await this.index.queryItems(vector, count);
+    const vectors = await this.index.queryItems(vector, '', count);
     const results = [];
     if (vectors.length > 0) {
       for (const result of vectors) {
@@ -94,8 +94,12 @@ class VectorPipeline extends GenericPipeline {
 
   async getTextMatches(text) {
     const vector_input = await this.createVector(text)
-    const vector_matches = await this.queryIndex(vector_input, 2)
-    return vector_matches
+    const vector_matches = await this.queryIndex(vector_input, 3)
+    const text_matches = []
+    for (const v in vector_matches) {
+      text_matches.push(vector_matches[v].text)
+    }
+    return text_matches
   }
 
 }
@@ -120,7 +124,7 @@ class ChatbotPipeline extends GenericPipeline {
     const newquery = {"role": "user", "content": contextquery};
     this.chatlog.push(newquery);
     const pipe_output = await this.pipe(this.chatlog, {
-      max_new_tokens: 100,
+      max_new_tokens: 200,
       return_full_text: true
       }
     )
@@ -166,32 +170,42 @@ class ChatbotLogger {
     return this.path
   }
 
+  static createUser() {
+    // create user - associate with session id and human-readable 'username'
+  }
 
+  static logMessage() {
+    // log messages to messages table. possibly input in array (of arrays) - this will allow ['user':'message'] inputs for multiple message pairs.
 
-  // function: check for db, init if exists
-
-  // function: log messages from input array
-  // need to check for duplicates etc.
+  }
 
 }
 
-// TEST FUNCTION CALLS - VECTORPIPELINE
-const pipe1 = new VectorPipeline()
-console.log(await pipe1.loadModel())
-console.log(await pipe1.addToIndex('apple'))
-console.log(await pipe1.addToIndex('oranges'))
-console.log(await pipe1.addToIndex('red'))
-console.log(await pipe1.addToIndex('blue'))
-console.log(await pipe1.getTextMatches('green'))
+// Piecing it all together.
+const text = fs.readFileSync('study_docs/SDJC01-PIL01 Stool Sample.docx.txt','utf-8')
+const instructions = text.split('\r\n')
 
-// TEST FUNCTION CALLS - CHATBOTPIPELINE
+const vector_pipe = new VectorPipeline()
+await vector_pipe.loadModel()
+for (const i in instructions) {
+  const instruction = instructions[i].replace(/[^a-z0-9áéíóúñü \.,_-]/gim,"");
+  const instruction_clean = instruction.trim()
+  if (instruction != "") { 
+    console.log(await vector_pipe.addToIndex(instruction_clean))
+  }
+}
+
 const chat_model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct'
-const system_prompt = "You are a research assistant in a psychological survey. \
-      Your specific task is to provide instructions and answers to participants regarding a stool sampling procedure. \
-      If you do not know the answer, communicate this to the user."
-const pipe2 = new ChatbotPipeline(chat_model, system_prompt);
-await pipe2.loadModel()
-const prompt = "What can you do?"
-const response = await pipe2.askChatbot(prompt)
+const system_prompt = "You are a research assistant in a psychological survey. You provide instructions and answers to participants in a stool sampling procedure. \
+      Answer the prompt which follows the text \"User Query:\". Use only the information that follows the text \"Additional Information:\" when constructing your answer. \
+      If the additional information does not contain a logical answer, you must respond that you do not know the answer."
+
+const chat_pipe = new ChatbotPipeline(chat_model, system_prompt)
+await chat_pipe.loadModel()
+const query = "What should I do with the AnaeroGen sachet?"
+
+const additional_info = await vector_pipe.getTextMatches(query)
+console.log(additional_info)
+const chat_query = `User Query: ${query} \n Additional Information: ${additional_info}`
+const response = await chat_pipe.askChatbot(chat_query)
 console.log(response)
-// here we have prompt, response as const vars - could easily log in main code.
