@@ -67,7 +67,7 @@ class VectorPipeline extends GenericPipeline {
   async addToIndex(input) {
     const vector = await this.createVector(input)
     const results = await this.queryIndex(vector, 1);
-    if (results.length > 0 && results[0].score >= 1) {
+    if (results.length > 0 && results[0].score > 0.999) {
       return "Item Already in Index: "+input
     } else {
       await this.index.insertItem({
@@ -191,7 +191,7 @@ for (const i in instructions) {
   const instruction = instructions[i].replace(/[^a-z0-9áéíóúñü \.,_-]/gim,"");
   const instruction_clean = instruction.trim()
   if (instruction != "") { 
-    console.log(await vector_pipe.addToIndex(instruction_clean))
+    await vector_pipe.addToIndex(instruction_clean)
   }
 }
 
@@ -205,7 +205,6 @@ await chat_pipe.loadModel()
 const query = "What should I do with the AnaeroGen sachet?"
 
 const additional_info = await vector_pipe.getTextMatches(query)
-console.log(additional_info)
 const chat_query = `User Query: ${query} \n Additional Information: ${additional_info}`
 const response = await chat_pipe.askChatbot(chat_query)
 console.log(response)
