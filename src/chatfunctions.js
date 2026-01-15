@@ -51,7 +51,7 @@ class VectorPipeline extends GenericPipeline {
     return "Model loaded."
   };
   
-  async createEmbeddings(text) {
+  async createEmbedding(text) {
     const output = await this.pipe(
         text,
         { pooling: 'mean' },
@@ -60,18 +60,23 @@ class VectorPipeline extends GenericPipeline {
   };
 
   async addToIndex(input) {
-    const vector = await this.createEmbeddings(input)
+    const vector = await this.createEmbedding(input)
     console.log("Created vector: "+input)
-    await this.index.insertItem({
-      vector: vector,
-      metadata: { input },
-    })
-    // }
-    return "Item Added to Index: "+input
+    const db_check = await this.index.queryItems(vector, 3);
+    if (db_check.length > 0 && db_check[0].score >= 1) {
+      return "Item Already in Index: "+input
+    } else {
+      await this.index.insertItem({
+        vector: vector,
+        metadata: { input },
+      })
+      return "Item Added to Index: "+input
+    }
+    
   };
 
   async queryIndex(text) {
-    const vector = await this.createEmbeddings(text);
+    const vector = await this.createEmbedding(text);
     const results = await this.index.queryItems(vector, 3);
     if (results.length > 0) {
         for (const result of results) {
@@ -90,7 +95,7 @@ console.log(await pipe1.addToIndex('apple'))
 console.log(await pipe1.addToIndex('oranges'))
 console.log(await pipe1.addToIndex('red'))
 console.log(await pipe1.addToIndex('blue'))
-const output = await pipe1.queryIndex('green')
+await pipe1.queryIndex('green')
 
 class ChatbotPipeline extends GenericPipeline {
   
@@ -124,13 +129,13 @@ class ChatbotPipeline extends GenericPipeline {
 }
 
 // TEST FUNCTION CALLS - CHATBOTPIPELINE
-const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct'
+const chat_model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct'
 const system_prompt = "You are a research assistant in a psychological survey. \
       Your specific task is to provide instructions and answers to participants regarding a stool sampling procedure. \
       If you do not know the answer, communicate this to the user."
-const pipe = new ChatbotPipeline(model, system_prompt);
-await pipe.loadModel()
+const pipe2 = new ChatbotPipeline(chat_model, system_prompt);
+await pipe2.loadModel()
 const prompt = "What can you do?"
-const response = await pipe.askChatbot(prompt)
+const response = await pipe2.askChatbot(prompt)
 console.log(response)
 // here we have prompt, response as const vars - could easily log in main code.
