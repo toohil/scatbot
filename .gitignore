@@ -25,7 +25,9 @@ dist-ssr
 *.sw?
 
 # env files
-*.env$
+.env
+backend/.env
 
-# 
+# avoid storing logs, data files in repo
 backend/study_docs
+backend/db
