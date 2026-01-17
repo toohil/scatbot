@@ -7,10 +7,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# node-specific files
 node_modules
 dist
 dist-ssr
-*.local
+(frontend|backend)/(node_modules|dist|dist-ssr)
 
 # Editor directories and files
 .vscode/*
@@ -23,5 +24,8 @@ dist-ssr
 *.sln
 *.sw?
 
-server/.env
-.env
+# env files
+*.env$
+
+# 
+backend/study_docs

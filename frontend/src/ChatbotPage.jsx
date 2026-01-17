@@ -1,7 +1,7 @@
 // src/ChatbotPage.jsx
 import { useState } from "react";
 import { useEffect, useRef } from "react";
-import { getChatbotStatus, getChatbotResponse } from "../server/chatfunctions.js"
+import { getChatbotStatus, getChatbotResponse } from "../../backend/chatfunctions.js"
 
 function ChatbotPage({ onBack, session }) {
 

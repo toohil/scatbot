@@ -1,7 +1,7 @@
-// TODO: 13/1
+// TODO:
 // 1. search & pull top (3?) pages from sources
 // 2. parse pages for content - likely per source depending on layout etc.
-// 3. run embedding model.
+// 3. run vectorpipeline
 
 async function getMedlineData(keyword) {
   const url = 'https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&term='+keyword;
@@ -49,3 +49,16 @@ function readFile(filename) {
 }
 
 console.log(readFile('study_docs/SDJC01-PIL01 Stool Sample.docx.txt'))
+
+// import fs from 'fs';
+
+// DEMO CODE - INSERTING EMBEDDINGS INTO DB.
+// const text = fs.readFileSync('study_docs/SDJC01-PIL01 Stool Sample.docx.txt','utf-8')
+// const instructions = text.split('\r\n')
+// for (const i of instructions) {
+//   const instruction = i.replace(/[^a-z0-9áéíóúñü \.,_-]/gim,"");
+//   const instruction_clean = instruction.trim()
+//   if (instruction != "") {
+//     await vector_pipe.addToIndex(instruction_clean)
+//   }
+// }

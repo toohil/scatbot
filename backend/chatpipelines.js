@@ -1,7 +1,5 @@
 import { pipeline } from '@huggingface/transformers';
 import { LocalIndex } from 'vectra';
-// import { DatabaseSync } from 'node:sqlite'
-import path from 'node:path';
 
 class GenericPipeline {
 
