@@ -1,133 +1,100 @@
 // src/ChatbotPage.jsx
 import { useState } from "react";
 import { useEffect, useRef } from "react";
+import { getChatbotStatus, getChatbotResponse } from "../server/chatfunctions.js"
 
 function ChatbotPage({ onBack, session }) {
-  
-  const [currentIndex, setCurrentIndex] = useState(0);
+
+  var msg_count = 0
   const [messages, setMessages] = useState(() => [
     {
-      id: `bot-${STEPS[0].id}`,
+      id: `bot-0`,
       sender: "bot",
-      text: STEPS[0].text,
-      title: STEPS[0].title,
+      text: "Give me a question",
     },
   ]);
-
-  const currentStep = STEPS[currentIndex];
-  const totalSteps = STEPS.length;
-
   
   const handleNext = () => {
-    if (currentIndex < totalSteps - 1) {
-      const nextIndex = currentIndex + 1;
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `user-${currentStep.id}`,
-          sender: "user",
-          text: "Okay, got it – next step.",
-        },
-        {
-          id: `bot-${STEPS[nextIndex].id}`,
-          sender: "bot",
-          title: STEPS[nextIndex].title,
-          text: STEPS[nextIndex].text,
-        },
-      ]);
-
-      setCurrentIndex(nextIndex);
-    }
+    // reimplement this - some prompt engineer to get "next step" from chatbot.
+    // piggyback on main handleQuery method
+    console.log("Registered request")
   };
 
   const handleMoreInfo = () => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `user-more-${currentStep.id}`,
-        sender: "user",
-        text: "Tell me more",
-      },
-      {
-        id: `bot-more-${currentStep.id}`,
-        sender: "bot",
-        title: currentStep.title + " — More info",
-        text: currentStep.moreInfo || "There is no additional information for this step.",
-      },
-    ]);
+    // reimplement this - prompt engineer to get "more info" from chatbot.
+    // piggyback on main handleQuery method
+    console.log("Registered request")
   };
-  
-  
-
-
 
   const handleFaqSelect = (index) => {
-    // Append the selected FAQ question and its answer to the chat messages
-    const fq = COMMON_QUESTIONS[index];
-    if (!fq) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `user-faq-select-${currentStep.id}-${index}`,
-        sender: "user",
-        text: fq.q,
-      },
-      {
-        id: `bot-faq-answer-${currentStep.id}-${index}`,
-        sender: "bot",
-        title: `Q: ${fq.q}`,
-        text: fq.a,
-      },
-    ]);
+    // likely remove, don't think chatbot will produce a useful output.
+    // we could implement it later by training on transcript/chatlogs
   };
 
-  const submitQuery = () => {
-    // grab text from input field
-    // submit to askChatbot function from worker.j
-    const textInput = document.getElementById('freeTextInput');
-    askChatbot(textInput);
+  const handleQuery = () => {
+    // how should this work?
+    // need to fire off information - implement some sort of loading animation - then retrieve.
+    const text_input = document.getElementById('freeTextInput');
+    if (getChatbotStatus() == true) {
+      console.log(text_input);
+      const response = getChatbotResponse(text_input)
+      setMessages((prev) => [
+          ...prev,
+          {
+            id: `user-${msg_count}`,
+            sender: "user",
+            text: text_input,
+          },
+          {
+            id: `bot-${msg_count+1}`,
+            sender: "bot",
+            text: response,
+          },
+        ]);
+      msg_count++;
+    } else {
+      console.log("Awaiting model.")
+    }
   }
   // will also need to handle reading response
 
-  const atEnd = currentIndex === totalSteps - 1;
 const lastSavedIndexRef = useRef(0);
-
 const bottomRef = useRef(null);
 
-useEffect(() => {
-  // You must have the session id available (passed from App)
-  const sessionId = session?.session_id;
-  if (!sessionId) return;
+// useEffect(() => {
+//   // You must have the session id available (passed from App)
+//   const sessionId = session?.session_id;
+//   if (!sessionId) return;
 
-  // Only send messages that were added since last time
-  const newMessages = messages.slice(lastSavedIndexRef.current);
-  if (newMessages.length === 0) return;
+//   // Only send messages that were added since last time
+//   const newMessages = messages.slice(lastSavedIndexRef.current);
+//   if (newMessages.length === 0) return;
 
-  const sendOne = async (msg) => {
+//   const sendOne = async (msg) => {
   
-    const role =
-      msg.sender === "user" || msg.role === "user" ? "user" : "bot";
+//     const role =
+//       msg.sender === "user" || msg.role === "user" ? "user" : "bot";
 
-    const content =
-      msg.text ??
-      msg.content ??
-      msg.message ??
-      (typeof msg === "string" ? msg : JSON.stringify(msg));
+//     const content =
+//       msg.text ??
+//       msg.content ??
+//       msg.message ??
+//       (typeof msg === "string" ? msg : JSON.stringify(msg));
 
-    // Fire-and-forget: don’t block the UI
-    fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, content }),
-    }).catch(() => {});
-  };
+//     // Fire-and-forget: don’t block the UI
+//     fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ role, content }),
+//     }).catch(() => {});
+//   };
 
-  // Send all new messages
-  newMessages.forEach(sendOne);
+//   // Send all new messages
+//   newMessages.forEach(sendOne);
 
-  // Mark them as saved (so we don’t resend)
-  lastSavedIndexRef.current = messages.length;
-}, [messages, session]);
+//   // Mark them as saved (so we don’t resend)
+//   lastSavedIndexRef.current = messages.length;
+// }, [messages, session]);
 
 useEffect(() => {
   bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -145,9 +112,9 @@ useEffect(() => {
             We’ll walk through the instructions step by step.
           </p>
         </div>
-        <div className="progress">
+        {/* <div className="progress">
           Step {currentIndex + 1} of {totalSteps}
-        </div>
+        </div> */}
       </header>
 
       <main className="chat-layout">
@@ -159,7 +126,6 @@ useEffect(() => {
                 msg.sender === "bot" ? "message message-bot" : "message message-user"
               }
             >
-              {msg.title && <div className="message-title">{msg.title}</div>}
               <p className="message-text">
                 {msg.text.split("\n").map((line, idx) => (
                   <span key={idx}>
@@ -181,12 +147,12 @@ useEffect(() => {
               placeholder="Enter text."
               id="freeTextInput"
             />
-            <button className="chip" type="button" onClick={submitQuery}>
+            <button className="chip" type="button" onClick={handleQuery}>
               Go
             </button>
           </div>          
 
-          {!atEnd ? (
+          {/* {!atEnd ? (
             <div className="quick-replies">
               <button className="chip" type="button" onClick={handleNext}>
                  Next
@@ -222,7 +188,7 @@ useEffect(() => {
                 <code>participant-instruction-leaflet.pdf</code> 
               </p>
             </div>
-          )}
+          )} */}
 
           
         </section>

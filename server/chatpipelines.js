@@ -1,10 +1,7 @@
 import { pipeline } from '@huggingface/transformers';
 import { LocalIndex } from 'vectra';
-import { DatabaseSync } from 'node:sqlite'
+// import { DatabaseSync } from 'node:sqlite'
 import path from 'node:path';
-
-const __dirname = import.meta.dirname;
-const data_dir = path.join(__dirname, 'db') // this maybe could be reimplemented as an env var
 
 class GenericPipeline {
 
@@ -34,6 +31,10 @@ class GenericPipeline {
     return this.status
   };
 
+  async unloadModel() {
+    this.pipe.dispose()
+  }
+
   /**
    * Getter method for model load status.
    * @returns {boolean} true if ready
@@ -47,14 +48,15 @@ class VectorPipeline extends GenericPipeline {
 
   /**
    * Constructor for VectorPipeline object, used to generate embeddings.
-   */
-  constructor() {
+   * @param {string} dirname Target path to vector index file.
+  */
+  constructor(dirname) {
     const task = 'feature-extraction';
     const model = 'Xenova/jina-embeddings-v2-small-en';
     super(task, model)
     
     // create additional instance variable for vector index
-    this.index = new LocalIndex(data_dir, 'vector_index.json')
+    this.index = new LocalIndex(dirname, 'vector_index.json')
   }
 
   /**
@@ -163,7 +165,7 @@ class ChatbotPipeline extends GenericPipeline {
    */
   constructor() {
     const task = 'text-generation';
-    const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
+    const model = 'HuggingFaceTB/SmolLM2-360M-Instruct';
     super(task, model)
 
     // chatlog array is used to store chat history.
@@ -199,52 +201,6 @@ class ChatbotPipeline extends GenericPipeline {
     return reply.content
     }
   };
-}
-
-class ChatbotLogger {
-
-  // Treating this as a class so we can implement multiple logging options:
-  // * mysql is likely most stable, but requires starting an additional server on the host
-  // * node:sqlite library is experimental currently, but would allow pure node frontend/backend, could very easily build a binary
-  //   -> https://nodejs.org/api/single-executable-applications.html
-  //   -> https://nodejs.org/api/sqlite.html
-
-  constructor() {
-    this.path = path.join(data_dir,'chat_messages.db')
-    this.fileDb = new DatabaseSync(this.path);
-
-    this.fileDb.exec(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        session_id VARCHAR(64) PRIMARY KEY,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_seen  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      );
-    `)
-
-    this.fileDb.exec(`
-      CREATE TABLE IF NOT EXISTS messages (
-        session_id VARCHAR(64) PRIMARY KEY,
-        role ENUM('system','user','bot') NOT NULL,
-        content TEXT NOT NULL,
-      )
-
-    `)
-
-  }
-
-  static getpath() {
-    return this.path
-  }
-
-  static createUser() {
-    // create user - associate with session id and human-readable 'username'
-  }
-
-  static logMessage() {
-    // log messages to messages table. possibly input in array (of arrays) - this will allow ['user':'message'] inputs for multiple message pairs.
-
-  }
-
 }
 
 export { ChatbotPipeline, VectorPipeline }
