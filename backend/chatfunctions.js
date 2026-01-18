@@ -82,9 +82,7 @@ class Chatbot {
     this.cpipe = new ChatbotPipeline();
     this.status = false;
     this.chatlogs = {}
-    const system_prompt = `You are a research assistant in a psychological survey. You inform participants about a stool sampling procedure.
-              Answer all subsequent prompts which follow "User Query:" in your own words, using only the provided information under "Additional Information:".
-              If the additional information does not contain a logical answer to the query, respond that you do not know the answer.`
+    const system_prompt = `You are a research assistant in a psychological survey.`
     this.prompt_init = [{'role': 'system', 'content': system_prompt}];
     }
 
@@ -99,20 +97,19 @@ class Chatbot {
   }
 
   async newChatSession(uuid) {
-    addUser.run(`'${uuid}'`)
-    this.chatlogs[session_id] = this.prompt_init;
+    this.chatlogs[uuid] = this.prompt_init;
   }
 
   async getChatbotResponse(uuid, text) {
-    addMessage.run(uuid, "user", text)
-    const context = this.vpipe.getTextMatches(text);
+    const context = await this.vpipe.getTextMatches(text);
     const prompt = `${text}+${context}`;
 
     // add user role, push to chatlog
     this.chatlogs[uuid].push({'role':'user','content':prompt})
-    const output = this.cpipe.askChatbot(this.chatlogs[uuid]);
+    const output = await this.cpipe.askChatbot(this.chatlogs[uuid]);
     this.chatlogs[uuid] = output
-    return this.chatlogs[uuid].at(-1).content;
+    const response = output[(output.length - 1)].content;
+    return response;
   }
 
   async killChatbot() {
@@ -122,5 +119,3 @@ class Chatbot {
 }
 
 export { Chatbot, ChatLogger };
-
-    
