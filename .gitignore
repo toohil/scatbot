@@ -28,6 +28,6 @@ dist-ssr
 .env
 backend/.env
 
-# avoid storing logs, data files in repo
-backend/study_docs/*
-backend/db/*(.json|.db)
+# avoid storing datafiles
+backend/study_docs
+backend/db

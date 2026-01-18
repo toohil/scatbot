@@ -163,14 +163,8 @@ class ChatbotPipeline extends GenericPipeline {
    */
   constructor() {
     const task = 'text-generation';
-    const model = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+    const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
     super(task, model)
-
-    // chatlog array is used to store chat history.
-    const system_prompt = `You are a research assistant in a psychological survey. You inform participants about a stool sampling procedure.
-          Answer all subsequent prompts which follow "User Query:" in your own words, using only the provided information under "Additional Information:".
-          If the additional information does not contain a logical answer to the query, respond that you do not know the answer.`
-    this.chatlog = [{'role': 'system', 'content': system_prompt}];
   };
 
   /**
@@ -178,16 +172,13 @@ class ChatbotPipeline extends GenericPipeline {
    * @param {string} text User prompt
    * @returns {string} Chatbot reply
    */
-  async askChatbot(text) {
+  async askChatbot(chatlog) {
     if (this.status == false) {
       // don't try to submit query if the model is not loaded
       return 'Must initialise model first'
     } else {
-    // add user role, push to chatlog
-    const newquery = {'role': 'user', 'content': text};
-    this.chatlog.push(newquery);
     // feed chatlog into transformer pipeline
-    const pipe_output = await this.pipe(this.chatlog, {
+    const pipe_output = await this.pipe(chatlog, {
       max_new_tokens: 200,
       return_full_text: true
       }
@@ -195,8 +186,8 @@ class ChatbotPipeline extends GenericPipeline {
     // parse pipeline output for generated content
     const reply = pipe_output[0].generated_text.at(-1);
     // push reply to chatlog and return
-    this.chatlog.push(reply);
-    return reply.content
+    chatlog.push(reply);
+    return chatlog
     }
   };
 }
