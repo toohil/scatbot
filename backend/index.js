@@ -2,10 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import crypto from "crypto";
-import { Chatbot } from "./chatfunctions.js";
+import { Chatbot, ChatLogger } from "./chatfunctions.js";
 
 dotenv.config();
-
 // Tiny helper so missing env vars fail loudly (instead of vague errors)
 function mustGetEnv(name) {
   const v = process.env[name];
@@ -14,10 +13,12 @@ function mustGetEnv(name) {
 }
 
 const app = express();
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 const cb = new Chatbot();
+const db = new ChatLogger();
+await db.init()
 
 // CHECK HEALTH
 app.get("/health", (_req, res) => {
@@ -32,8 +33,11 @@ app.post("/api/session", async (_req, res) => {
     // (we make some form available which deletes db entries associated with this identifier)
     // something like https://www.npmjs.com/package/unique-names-generator would work well.
     const sessionId = crypto.randomUUID();
+    
     await cb.newChatSession(sessionId)
-    const output = await cb.getChatSession(sessionId)
+    await db.addUser(sessionId)
+
+    const output = await db.getUser(sessionId)
 
     res.json(output)
   } catch (err) {
@@ -47,11 +51,11 @@ app.post("/api/session/:sessionId/message", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { role, content } = req.body;
-
+    db.addMessage(sessionId, role, content)
     // not sure yet how we'll handle the delay between submit query/received response.
     // maybe frontend fire & ignore -> monitor some status page -> get response when status changes
     const response = await cb.getChatbotResponse(sessionId, content)
-
+    db.addMessage(sessionId, "bot", response)
     // also not implemented
     
     // consider this placeholder code for now, we could maybe do better.
@@ -62,23 +66,13 @@ app.post("/api/session/:sessionId/message", async (req, res) => {
   }
 });
 
-// SESSION STATUS
-app.get("/api/session/:sessionId/status", async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    // implement some function to retrieve per-session status (e.g. model loaded, pipeline working)
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to save message" });
-  }
-});
-
 // GET MESSAGES
 app.get("/api/session/:sessionId/messages", async (req, res) => {
   try {
+    
     const { sessionId } = req.params;
-    // implement function to retrieve messages from db in chatbot class
+    db.getMessages(sessionId)
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch messages" });
@@ -88,6 +82,7 @@ app.get("/api/session/:sessionId/messages", async (req, res) => {
 // END SESSION (right now this actually unloads models entirely, not technically the same thing)
 app.post("/api/session/:sessionId/kill-session", async (req, res) => {
   try {
+
     const { sessionId } = req.params;
     cb.killChatbot()
 
@@ -102,4 +97,3 @@ const PORT = 5174;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
