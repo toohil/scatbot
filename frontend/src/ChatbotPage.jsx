@@ -1,6 +1,5 @@
 // src/ChatbotPage.jsx
-import { useState } from "react";
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const STEPS = [
   {
@@ -94,27 +93,8 @@ Bring the envelope with you to your visit.`,
   },
 ];
 
-const COMMON_QUESTIONS = [
-  {
-    q: "Can I collect the sample if I've had antibiotics?",
-    a: "If you've had antibiotics in the last 4 weeks, please tell the study team — antibiotics can affect the results.",
-  },
-  {
-    q: "How should I transport the sample?",
-    a: "Keep the sample refrigerated and bring it to your appointment in the provided insulated envelope with the frozen freezer block.",
-  },
-  {
-    q: "Who do I contact with questions?",
-    a: "Contact the study coordinator at study-team@example.org or call +44 1234 567890.",
-  },
-  {
-    q: "Will my personal data be shared?",
-    a: "No personally identifying data is shared. Samples are de-identified before analysis; contact the study team for the full data-sharing policy.",
-  },
-];
-
 function ChatbotPage({ onBack, session }) {
-  
+  // const [loaded, setLoaded] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0);
   const [messages, setMessages] = useState(() => [
     {
@@ -128,7 +108,6 @@ function ChatbotPage({ onBack, session }) {
   const currentStep = STEPS[currentIndex];
   const totalSteps = STEPS.length;
 
-  
   const handleNext = () => {
     if (currentIndex < totalSteps - 1) {
       const nextIndex = currentIndex + 1;
@@ -167,80 +146,86 @@ function ChatbotPage({ onBack, session }) {
       },
     ]);
   };
-  
-  
 
+  const submitQuery = async () => {
+    // grab text from input field
+    // submit to askChatbot function from worker.js
+    const sessionId = session?.session_id;
+    console.log(sessionId)
+    if (!sessionId) return;
 
-
-  const handleFaqSelect = (index) => {
-    // Append the selected FAQ question and its answer to the chat messages
-    const fq = COMMON_QUESTIONS[index];
-    if (!fq) return;
+    // setLoaded(false) -> we can use a state to decide interface behaviour
+    const role = "user"
+    const textbox = document.getElementById('freeTextInput');
+    const content = textbox.value;
+    
+    const response = await fetch(`http://localhost:5174/api/session/${sessionId}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json"},
+      body: JSON.stringify({ role, content })
+    }).catch(() => {});
+    const output = await response.json()
+    
+    // setLoaded(true) -> cancel "loading behaviour"
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-faq-select-${currentStep.id}-${index}`,
+        id: `user-freetext-query-${currentStep.id}`,
         sender: "user",
-        text: fq.q,
+        text: content
       },
       {
-        id: `bot-faq-answer-${currentStep.id}-${index}`,
+        id: `bot-generated-answer-${currentStep.id}`,
         sender: "bot",
-        title: `Q: ${fq.q}`,
-        text: fq.a,
-      },
+        title: `Q: ${content}`,
+        text: `${output["message"]}`
+      }
     ]);
-  };
-
-  const submitQuery = () => {
-    // grab text from input field
-    // submit to askChatbot function from worker.js
   }
-  // will also need to handle reading response
 
   const atEnd = currentIndex === totalSteps - 1;
-const lastSavedIndexRef = useRef(0);
+  const lastSavedIndexRef = useRef(0);
 
-const bottomRef = useRef(null);
+  const bottomRef = useRef(null);
 
-useEffect(() => {
-  // You must have the session id available (passed from App)
-  const sessionId = session?.session_id;
-  if (!sessionId) return;
+  useEffect(() => {
+    // You must have the session id available (passed from App)
+    const sessionId = session?.session_id;
+    if (!sessionId) return;
 
-  // Only send messages that were added since last time
-  const newMessages = messages.slice(lastSavedIndexRef.current);
-  if (newMessages.length === 0) return;
+    // Only send messages that were added since last time
+    const newMessages = messages.slice(lastSavedIndexRef.current);
+    if (newMessages.length === 0) return;
 
-  const sendOne = async (msg) => {
-  
-    const role =
-      msg.sender === "user" || msg.role === "user" ? "user" : "bot";
+    const sendOne = async (msg) => {
+    
+      const role =
+        msg.sender === "user" || msg.role === "user" ? "user" : "bot";
 
-    const content =
-      msg.text ??
-      msg.content ??
-      msg.message ??
-      (typeof msg === "string" ? msg : JSON.stringify(msg));
+      const content =
+        msg.text ??
+        msg.content ??
+        msg.message ??
+        (typeof msg === "string" ? msg : JSON.stringify(msg));
 
-    // Fire-and-forget: don’t block the UI
-    fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, content }),
-    }).catch(() => {});
-  };
+      // Fire-and-forget: don’t block the UI
+      fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, content }),
+      }).catch(() => {});
+    };
 
-  // Send all new messages
-  newMessages.forEach(sendOne);
+    // Send all new messages
+    newMessages.forEach(sendOne);
 
-  // Mark them as saved (so we don’t resend)
-  lastSavedIndexRef.current = messages.length;
-}, [messages, session]);
+    // Mark them as saved (so we don’t resend)
+    lastSavedIndexRef.current = messages.length;
+  }, [messages, session]);
 
-useEffect(() => {
-  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages]);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   return (
     <div className="chat-page">
@@ -288,6 +273,7 @@ useEffect(() => {
               className="text-input"
               type="text"
               placeholder="Ask a question"
+              id="freeTextInput"
             />
             <button className="chip" type="button" onClick={submitQuery}>
               Go
@@ -302,16 +288,6 @@ useEffect(() => {
               <button className="chip" type="button" onClick={handleMoreInfo}>
                  More info
               </button>
-              {COMMON_QUESTIONS.slice(0, 2).map((fq, i) => (
-                <button
-                  key={i}
-                  className="chip secondary"
-                  type="button"
-                  onClick={() => handleFaqSelect(i)}
-                >
-                  {fq.q}
-                </button>
-              ))}
             </div>
           ) : (
             <div className="end-actions">

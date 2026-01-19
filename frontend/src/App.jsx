@@ -25,12 +25,13 @@ function App() {
     setScreen("chat");
   } catch (e) {
     // Fallback: allow chat to open even if backend is down
-    const localId =
-      (globalThis.crypto && crypto.randomUUID && crypto.randomUUID()) ||
-      `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    // const localId =
+    //   (globalThis.crypto && crypto.randomUUID && crypto.randomUUID()) ||
+    //   `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-    setSession({ session_id: localId, offline: true });
-    setScreen("chat");
+    // setSession({ session_id: localId, offline: true });
+    // setScreen("chat");
+    console.log("Some error.")
   } finally {
     setStarting(false);
   }

@@ -1,16 +1,16 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import crypto from "crypto";
 import { Chatbot, ChatLogger } from "./chatfunctions.js";
 
-dotenv.config();
-// Tiny helper so missing env vars fail loudly (instead of vague errors)
-function mustGetEnv(name) {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing env var: ${name} (check server/.env)`);
-  return v;
-}
+// import dotenv from "dotenv";
+// dotenv.config();
+// // Tiny helper so missing env vars fail loudly (instead of vague errors)
+// function mustGetEnv(name) {
+//   const v = process.env[name];
+//   if (!v) throw new Error(`Missing env var: ${name} (check server/.env)`);
+//   return v;
+// }
 
 const app = express();
 app.use(cors());
@@ -18,6 +18,7 @@ app.use(express.json());
 
 const cb = new Chatbot();
 const db = new ChatLogger();
+await cb.initChatbot()
 await db.init()
 
 // CHECK HEALTH
@@ -33,8 +34,6 @@ app.post("/api/session", async (_req, res) => {
     // (we make some form available which deletes db entries associated with this identifier)
     // something like https://www.npmjs.com/package/unique-names-generator would work well.
     const sessionId = crypto.randomUUID();
-    
-    await cb.newChatSession(sessionId)
     await db.addUser(sessionId)
 
     const output = await db.getUser(sessionId)
@@ -47,23 +46,26 @@ app.post("/api/session", async (_req, res) => {
 });
 
 // SEND QUERY / RECEIVE RESPONSE
-app.post("/api/session/:sessionId/message", async (req, res) => {
+app.post("/api/session/:sessionId/chat", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { role, content } = req.body;
-    db.addMessage(sessionId, role, content)
-    // not sure yet how we'll handle the delay between submit query/received response.
-    // maybe frontend fire & ignore -> monitor some status page -> get response when status changes
-    const response = await cb.getChatbotResponse(sessionId, content)
+    console.log(role)
+    console.log(content)
+    db.addMessage(sessionId, role, content);
+    const response = await cb.getChatbotResponse(content);
     db.addMessage(sessionId, "bot", response)
-    // also not implemented
+    console.log(response)
     
-    // consider this placeholder code for now, we could maybe do better.
-    res.json[{ "response": response }]
+    res.json({ message: response })
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to save message" });
+    res.status(500).json({ error: "Failed to recognise message" });
   }
+});
+
+app.post("/api/session/:sessionId/message", async (req, res) => {
+
 });
 
 // GET MESSAGES
