@@ -147,7 +147,7 @@ class Chatbot {
 
   async killChatbot() {
     this.cpipe.unloadModel();
-    // this.vpipe.unloadModel();
+    this.vpipe.unloadModel();
   }
 }
 

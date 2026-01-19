@@ -7,45 +7,27 @@
 ### Requirements
 
 - Node.js
-- MySQL (server running)
 
 ### 1) Install dependencies
 
 ```bash
-npm install
-cd server && npm install
+cd frontend && npm install
+cd backend && npm install
 
 
-2) set up database
+2) configure the env variables
 
-mysql -u root -p < db/schema.sql
-
-
-3) configure the env variables
-
-cp server/.env.example server/.env
+cp backend/.env.example backend/.env
 
 
 4)start the backend server
 
-cd server
+cd backend
 node index.js
 
 5) start the frontend
 
+cd frontend
 npm run dev
 
-6) verify
-
-USE chatbot_app;
-SELECT * FROM sessions ORDER BY created_at DESC;
 ```
-
-USE chatbot_app;
-
-SELECT \* FROM sessions ORDER BY created_at DESC;
-
-SELECT session_id, role, content, created_at
-FROM messages
-ORDER BY created_at DESC
-LIMIT 20;
