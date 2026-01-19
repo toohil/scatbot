@@ -50,7 +50,6 @@ app.post("/api/session/:sessionId/chat", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { role, content } = req.body;
-    console.log(role)
     console.log(content)
     db.addMessage(sessionId, role, content);
     const response = await cb.getChatbotResponse(content);
