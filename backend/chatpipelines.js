@@ -163,7 +163,7 @@ class ChatbotPipeline extends GenericPipeline {
    */
   constructor() {
     const task = 'text-generation';
-    const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
+    const model = 'HuggingFaceTB/SmolLM2-360M-Instruct';
     super(task, model)
   };
 
