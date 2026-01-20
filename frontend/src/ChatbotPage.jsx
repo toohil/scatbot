@@ -161,7 +161,8 @@ const showTyping = () => {
     {
       id: typingId,
       sender: "bot",
-      text: "Chatbot is typing…",
+      text: "TYPING_INDICATOR", // Special marker for animated dots
+      isTyping: true,
     },
   ]);
 };
@@ -192,12 +193,14 @@ const submitQuery = async () => {
   setIsLoading(true);
   showTyping();
 
-  // added try/finally causen without any error was leaving the Go button disabled .
+  // added try/finally causen without them any error was leaving the Go button disabled .
   try {
     // setLoaded(false) -> we can use a state to decide interface behaviour
     const role = "user";
     const textbox = document.getElementById("freeTextInput");
     const content = textbox.value;
+    // added this heree to clear input field automatically
+    textbox.value = "";
 
     const response = await fetch(
       `http://localhost:5174/api/session/${sessionId}/chat`,
@@ -272,7 +275,7 @@ const submitQuery = async () => {
         msg.message ??
         (typeof msg === "string" ? msg : JSON.stringify(msg));
 
-      // Fire-and-forget: don’t block the UI
+      // don’t block the UI
       fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -319,12 +322,23 @@ const submitQuery = async () => {
             >
               {msg.title && <div className="message-title">{msg.title}</div>}
               <p className="message-text">
-                {msg.text.split("\n").map((line, idx) => (
-                  <span key={idx}>
-                    {line}
-                    <br />
-                  </span>
-                ))}
+                {msg.isTyping ? (
+                  <>
+                    Scatbot is thinking
+                    <span className="typing-indicator">
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                    </span>
+                  </>
+                ) : (
+                  msg.text.split("\n").map((line, idx) => (
+                    <span key={idx}>
+                      {line}
+                      <br />
+                    </span>
+                  ))
+                )}
               </p>
             </div>
           ))}
