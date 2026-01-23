@@ -1,3 +1,18 @@
+import dotenv from 'dotenv'
+
+dotenv.config();
+
+// Tiny helper so missing env vars fail loudly (instead of vague errors)
+function mustGetEnv(name) {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env var: ${name} (check server/.env)`);
+  return v;
+}
+
+const nhs_api_key = mustGetEnv("NHS_API_KEY")
+console.log(nhs_api_key)
+
+
 // TODO:
 // 1. search & pull top (3?) pages from sources
 // 2. parse pages for content - likely per source depending on layout etc.
@@ -23,7 +38,7 @@ async function getMedlineData(keyword) {
 
 async function getNHSData(keyword) {
   // handling for NHS API - this will need an API key - env variable? Will eventually be handled in admin API.
-
+  
 }
 
 async function getLabTestsData(keyword) {
