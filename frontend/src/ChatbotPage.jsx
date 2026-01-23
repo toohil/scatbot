@@ -94,7 +94,6 @@ Bring the envelope with you to your visit.`,
 ];
 
 function ChatbotPage({ onBack, session }) {
-  // const [loaded, setLoaded] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0);
   const [messages, setMessages] = useState(() => [
     {
@@ -190,17 +189,28 @@ const submitQuery = async () => {
   if (!sessionId) return;
 
   //turning on typing UI
-  setIsLoading(true);
-  showTyping();
+  
 
   // added try/finally causen without them any error was leaving the Go button disabled .
   try {
-    // setLoaded(false) -> we can use a state to decide interface behaviour
     const role = "user";
     const textbox = document.getElementById("freeTextInput");
     const content = textbox.value;
     // added this heree to clear input field automatically
     textbox.value = "";
+
+    // render query before sending 
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-freetext-query-${currentStep.id}`,
+        sender: "user",
+        text: content,
+      },
+    ]);
+
+    setIsLoading(true);
+    showTyping();
 
     const response = await fetch(
       `http://localhost:5174/api/session/${sessionId}/chat`,
@@ -214,15 +224,8 @@ const submitQuery = async () => {
     
     const output = await response.json();
 
-    // setLoaded(true) -> cancel "loading behaviour"
-
     setMessages((prev) => [
       ...prev,
-      {
-        id: `user-freetext-query-${currentStep.id}`,
-        sender: "user",
-        text: content,
-      },
       {
         id: `bot-generated-answer-${currentStep.id}`,
         sender: "bot",
@@ -247,8 +250,6 @@ const submitQuery = async () => {
     setIsLoading(false);
   }
 };
-
-
 
   const atEnd = currentIndex === totalSteps - 1;
   const lastSavedIndexRef = useRef(0);
