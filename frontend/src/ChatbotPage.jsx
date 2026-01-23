@@ -147,41 +147,108 @@ function ChatbotPage({ onBack, session }) {
     ]);
   };
 
-  const submitQuery = async () => {
-    // grab text from input field
-    // submit to askChatbot function from worker.js
-    const sessionId = session?.session_id;
-    console.log(sessionId)
-    if (!sessionId) return;
+  // Added loading state + typing message id ref
+const [isLoading, setIsLoading] = useState(false);
+const typingIdRef = useRef(null);
 
+// func to  show typing message
+const showTyping = () => {
+  const typingId = `bot-typing-${Date.now()}`;
+  typingIdRef.current = typingId;
+
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: typingId,
+      sender: "bot",
+      text: "TYPING_INDICATOR", // Special marker for animated dots
+      isTyping: true,
+    },
+  ]);
+};
+
+// func to remove typing message
+const hideTyping = () => {
+  const typingId = typingIdRef.current;
+  if (!typingId) return;
+
+  setMessages((prev) => prev.filter((m) => m.id !== typingId));
+  typingIdRef.current = null;
+};
+
+
+const submitQuery = async () => {
+  
+  //added this to stop spamming
+  if (isLoading) return;
+
+  // grab text from input field
+  // submit to askChatbot function from worker.js
+  const sessionId = session?.session_id;
+  console.log(sessionId);
+
+  if (!sessionId) return;
+
+  //turning on typing UI
+  setIsLoading(true);
+  showTyping();
+
+  // added try/finally causen without them any error was leaving the Go button disabled .
+  try {
     // setLoaded(false) -> we can use a state to decide interface behaviour
-    const role = "user"
-    const textbox = document.getElementById('freeTextInput');
+    const role = "user";
+    const textbox = document.getElementById("freeTextInput");
     const content = textbox.value;
+    // added this heree to clear input field automatically
+    textbox.value = "";
+
+    const response = await fetch(
+      `http://localhost:5174/api/session/${sessionId}/chat`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, content }),
+      }
+    ).catch(() => {});
+
     
-    const response = await fetch(`http://localhost:5174/api/session/${sessionId}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json"},
-      body: JSON.stringify({ role, content })
-    }).catch(() => {});
-    const output = await response.json()
-    
+    const output = await response.json();
+
     // setLoaded(true) -> cancel "loading behaviour"
+
     setMessages((prev) => [
       ...prev,
       {
         id: `user-freetext-query-${currentStep.id}`,
         sender: "user",
-        text: content
+        text: content,
       },
       {
         id: `bot-generated-answer-${currentStep.id}`,
         sender: "bot",
         title: `Q: ${content}`,
-        text: `${output["message"]}`
-      }
+        text: `${output["message"]}`,
+      },
     ]);
+  } catch (e) {
+    //  show a  bot error message instead of silently breaking.
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `bot-error-${Date.now()}`,
+        sender: "bot",
+        text: "Sorry — something went wrong. Please try again.",
+      },
+    ]);
+  } finally {
+    // Always remove the typing bubble and re-enable the Go button.
+    // This runs whether the request succeeds or fails.
+    hideTyping();
+    setIsLoading(false);
   }
+};
+
+
 
   const atEnd = currentIndex === totalSteps - 1;
   const lastSavedIndexRef = useRef(0);
@@ -208,7 +275,7 @@ function ChatbotPage({ onBack, session }) {
         msg.message ??
         (typeof msg === "string" ? msg : JSON.stringify(msg));
 
-      // Fire-and-forget: don’t block the UI
+      // don’t block the UI
       fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -255,12 +322,23 @@ function ChatbotPage({ onBack, session }) {
             >
               {msg.title && <div className="message-title">{msg.title}</div>}
               <p className="message-text">
-                {msg.text.split("\n").map((line, idx) => (
-                  <span key={idx}>
-                    {line}
-                    <br />
-                  </span>
-                ))}
+                {msg.isTyping ? (
+                  <>
+                    Scatbot is thinking
+                    <span className="typing-indicator">
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                    </span>
+                  </>
+                ) : (
+                  msg.text.split("\n").map((line, idx) => (
+                    <span key={idx}>
+                      {line}
+                      <br />
+                    </span>
+                  ))
+                )}
               </p>
             </div>
           ))}
@@ -274,10 +352,17 @@ function ChatbotPage({ onBack, session }) {
               type="text"
               placeholder="Ask a question"
               id="freeTextInput"
+
+              //added disabled when loading 
+              disabled={isLoading}
+
             />
-            <button className="chip" type="button" onClick={submitQuery}>
-              Go
-            </button>
+           <button className="chip" type="button"
+             onClick={submitQuery} 
+             disabled={isLoading}>
+            {isLoading ? "…" : "Go"}
+           </button>
+
           </div>          
 
           {!atEnd ? (
