@@ -189,28 +189,27 @@ const submitQuery = async () => {
   if (!sessionId) return;
 
   //turning on typing UI
-  
+  const role = "user";
+  const textbox = document.getElementById("freeTextInput");
+  const content = textbox.value;
+  // added this heree to clear input field automatically
+  textbox.value = "";
+
+  // render query before sending 
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: `user-freetext-query-${currentStep.id}`,
+      sender: "user",
+      text: content,
+    },
+  ]);
+
+  setIsLoading(true);
+  showTyping();
 
   // added try/finally causen without them any error was leaving the Go button disabled .
   try {
-    const role = "user";
-    const textbox = document.getElementById("freeTextInput");
-    const content = textbox.value;
-    // added this heree to clear input field automatically
-    textbox.value = "";
-
-    // render query before sending 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `user-freetext-query-${currentStep.id}`,
-        sender: "user",
-        text: content,
-      },
-    ]);
-
-    setIsLoading(true);
-    showTyping();
 
     const response = await fetch(
       `http://localhost:5174/api/session/${sessionId}/chat`,
@@ -325,7 +324,7 @@ const submitQuery = async () => {
               <p className="message-text">
                 {msg.isTyping ? (
                   <>
-                    Scatbot is thinking
+                    
                     <span className="typing-indicator">
                       <span className="typing-dot"></span>
                       <span className="typing-dot"></span>
