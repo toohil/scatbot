@@ -48,13 +48,13 @@ class VectorPipeline extends GenericPipeline {
    * Constructor for VectorPipeline object, used to generate embeddings.
    * @param {string} dirname Target path to vector index file.
   */
-  constructor(dirname) {
+  constructor() {
     const task = 'feature-extraction';
     const model = 'Xenova/jina-embeddings-v2-small-en';
     super(task, model)
     
     // create additional instance variable for vector index
-    this.index = new LocalIndex(dirname, 'vector_index.json')
+    this.index = new LocalIndex('db', 'vector_index.json')
   }
 
   /**
@@ -116,7 +116,7 @@ class VectorPipeline extends GenericPipeline {
    * Queries index for vector
    * @param {Array} vector 
    * @param {number} count 
-   * @returns {Array} list of best matches, in dictionary keypairs with text, score.
+   * @returns {Promise<Array>} list of best matches, in dictionary keypairs with text, score.
    */
   async queryIndex(vector, count) {
     // query index for vectors
@@ -128,7 +128,7 @@ class VectorPipeline extends GenericPipeline {
       for (const result of vectors) {
         // construct results dictionary, format {'text': 'AB', 'score':xy}
         const result_dict = {};
-        result_dict['text'] = result.item.metadata.input;
+        result_dict['text'] = result.item.metadata.text;
         result_dict['score'] = result.score;
         results.push(result_dict);
       };
@@ -139,17 +139,22 @@ class VectorPipeline extends GenericPipeline {
   /**
    * Queries vector index for input text
    * @param {string} text 
-   * @returns {Array} Most relevant text matches (unscored)
+   * @returns {Promise<Array>} Most relevant text matches (unscored)
    */
   async getTextMatches(text) {
     // convert input to vector embedding
+    console.log("Received text to embed:",text)
     const vector_input = await this.createVector(text)
+    console.log("Created vector")
     // query index for this vector
     const vector_matches = await this.queryIndex(vector_input, 3)
+    console.log("Received vectors")
     const text_matches = []
     // convert output dictionary array to simple list of text data
     for (const vector of vector_matches) {
+      console.log(vector)
       text_matches.push(vector.text)
+      console.log(vector.text)
     }
     return text_matches
   }
@@ -170,7 +175,7 @@ class ChatbotPipeline extends GenericPipeline {
   /**
    * Query active chatbot pipeline for generated response.
    * @param {string} text User prompt
-   * @returns {string} Chatbot reply
+   * @returns {Promise<string>} Chatbot reply
    */
   async askChatbot(chatlog) {
     if (this.status == false) {

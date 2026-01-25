@@ -62,3 +62,31 @@ console.log(readFile('study_docs/SDJC01-PIL01 Stool Sample.docx.txt'))
 //     await vector_pipe.addToIndex(instruction_clean)
 //   }
 // }
+const vpipe = new VectorPipeline(dbdir)
+await vpipe.loadModel()
+console.log("Model loaded")
+
+var vectordb = {
+  vectors: []
+}
+
+const instructions = readFile('./study_docs/rag-samples.txt')
+for (const text of instructions) {
+  const vector = await vpipe.createVector(text)
+  console.log(
+    {"vector": vector,
+      "text": text
+    }
+  )
+  vectordb.vectors.push({
+    "vector": vector,
+    "text": text
+  })
+  
+}
+
+var vectorjson = JSON.stringify(vectordb)
+
+const datafile = fs.writeFile("vector_index.json", vectorjson, function(err){
+    if(err) throw err;
+  })
