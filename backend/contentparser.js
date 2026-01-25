@@ -95,8 +95,27 @@ const vpipe = new VectorPipeline(dbdir)
 await vpipe.loadModel()
 console.log("Model loaded")
 
-const instructions = readFile('./study_docs/rag-samples.txt')
-for (const i of instructions) {
-  await vpipe.addToIndex(i)
-  console.log("Added to index:",i)
+var vectordb = {
+  vectors: []
 }
+
+const instructions = readFile('./study_docs/rag-samples.txt')
+for (const text of instructions) {
+  const vector = await vpipe.createVector(text)
+  console.log(
+    {"vector": vector,
+      "text": text
+    }
+  )
+  vectordb.vectors.push({
+    "vector": vector,
+    "text": text
+  })
+  
+}
+
+var vectorjson = JSON.stringify(vectordb)
+
+const datafile = fs.writeFile("vector_index.json", vectorjson, function(err){
+    if(err) throw err;
+  })
