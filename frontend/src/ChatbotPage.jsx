@@ -165,16 +165,8 @@ const handleMoreInfo = async () => {
 
   try {
     const role = "user";
-
     // IMPORTANT: include the last bot message so the LM knows what to expand on
-    const content = `Tell me more about your previous message. Expand with extra helpful details, tips, and clarification.
-                    Do not repeat the entire message verbatim. Use bullet points where helpful.
-
-                    Previous message title:
-                    ${lastBot.title || "(no title)"}
-
-                    Previous message:
-                    ${lastBot.text}`;
+    const content = `Give more detail on this step: ${lastBot.text}`;
 
     const response = await fetch(
       `http://localhost:5174/api/session/${sessionId}/chat`,
@@ -190,11 +182,11 @@ const handleMoreInfo = async () => {
     // Add the model's "more info" response
     setMessages((prev) => [
       ...prev,
-      {
+      {        
         id: `bot-more-${Date.now()}`,
         sender: "bot",
-        title: currentStep.title + " — More info",
-        text: currentStep.moreInfo || "There is no additional information for this step.",
+        title: `More Info: ${lastBot.title}`,
+        text: output.message,
       },
     ]);
   } catch (e) {
