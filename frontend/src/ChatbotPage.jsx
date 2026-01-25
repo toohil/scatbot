@@ -130,24 +130,90 @@ function ChatbotPage({ onBack, session }) {
     }
   };
 
-  const handleMoreInfo = () => {
+  // Get the most recent non-typing bot message so "More info" expands the right thing
+const getLastBotMessage = () => {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.sender === "bot" && !m.isTyping) return m;
+  }
+  return null;
+};
+
+const handleMoreInfo = async () => {
+  // stop spam clicks
+  if (isLoading) return;
+
+  const sessionId = session?.session_id;
+  if (!sessionId) return;
+
+  // Find what we’re expanding (last bot message in the chat)
+  const lastBot = getLastBotMessage();
+  if (!lastBot) return;
+
+  // Show the user’s request in chat immediately
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: `user-more-${Date.now()}`,
+      sender: "user",
+      text: "Tell me more",
+    },
+  ]);
+
+  setIsLoading(true);
+  showTyping();
+
+  try {
+    const role = "user";
+
+    // IMPORTANT: include the last bot message so the LM knows what to expand on
+    const content = `Tell me more about your previous message. Expand with extra helpful details, tips, and clarification.
+                    Do not repeat the entire message verbatim. Use bullet points where helpful.
+
+                    Previous message title:
+                    ${lastBot.title || "(no title)"}
+
+                    Previous message:
+                    ${lastBot.text}`;
+
+    const response = await fetch(
+      `http://localhost:5174/api/session/${sessionId}/chat`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, content }),
+      }
+    );
+
+    const output = await response.json();
+
+    // Add the model's "more info" response
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-more-${currentStep.id}`,
-        sender: "user",
-        text: "Tell me more",
-      },
-      {
-        id: `bot-more-${currentStep.id}`,
+        id: `bot-more-${Date.now()}`,
         sender: "bot",
         title: currentStep.title + " — More info",
         text: currentStep.moreInfo || "There is no additional information for this step.",
       },
     ]);
-  };
+  } catch (e) {
+    // keep your existing error behaviour style
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `bot-error-${Date.now()}`,
+        sender: "bot",
+        text: "Sorry — something went wrong. Please try again.",
+      },
+    ]);
+  } finally {
+    hideTyping();
+    setIsLoading(false);
+  }
+};
 
-  // Added loading state + typing message id ref
+// Added loading state + typing message id ref
 const [isLoading, setIsLoading] = useState(false);
 const typingIdRef = useRef(null);
 
@@ -190,17 +256,27 @@ const submitQuery = async () => {
   if (!sessionId) return;
 
   //turning on typing UI
+  const role = "user";
+  const textbox = document.getElementById("freeTextInput");
+  const content = textbox.value;
+  // added this heree to clear input field automatically
+  textbox.value = "";
+
+  // render query before sending 
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: `user-freetext-query-${currentStep.id}`,
+      sender: "user",
+      text: content,
+    },
+  ]);
+
   setIsLoading(true);
   showTyping();
 
   // added try/finally causen without them any error was leaving the Go button disabled .
   try {
-    // setLoaded(false) -> we can use a state to decide interface behaviour
-    const role = "user";
-    const textbox = document.getElementById("freeTextInput");
-    const content = textbox.value;
-    // added this heree to clear input field automatically
-    textbox.value = "";
 
     const response = await fetch(
       `http://localhost:5174/api/session/${sessionId}/chat`,
@@ -214,15 +290,8 @@ const submitQuery = async () => {
     
     const output = await response.json();
 
-    // setLoaded(true) -> cancel "loading behaviour"
-
     setMessages((prev) => [
       ...prev,
-      {
-        id: `user-freetext-query-${currentStep.id}`,
-        sender: "user",
-        text: content,
-      },
       {
         id: `bot-generated-answer-${currentStep.id}`,
         sender: "bot",
@@ -248,40 +317,38 @@ const submitQuery = async () => {
   }
 };
 
+const atEnd = currentIndex === totalSteps - 1;
+const lastSavedIndexRef = useRef(0);
 
+const bottomRef = useRef(null);
 
-  const atEnd = currentIndex === totalSteps - 1;
-  const lastSavedIndexRef = useRef(0);
+useEffect(() => {
+  // You must have the session id available (passed from App)
+  const sessionId = session?.session_id;
+  if (!sessionId) return;
 
-  const bottomRef = useRef(null);
+  // Only send messages that were added since last time
+  const newMessages = messages.slice(lastSavedIndexRef.current);
+  if (newMessages.length === 0) return;
 
-  useEffect(() => {
-    // You must have the session id available (passed from App)
-    const sessionId = session?.session_id;
-    if (!sessionId) return;
+  const sendOne = async (msg) => {
+  
+    const role =
+      msg.sender === "user" || msg.role === "user" ? "user" : "bot";
 
-    // Only send messages that were added since last time
-    const newMessages = messages.slice(lastSavedIndexRef.current);
-    if (newMessages.length === 0) return;
+    const content =
+      msg.text ??
+      msg.content ??
+      msg.message ??
+      (typeof msg === "string" ? msg : JSON.stringify(msg));
 
-    const sendOne = async (msg) => {
-    
-      const role =
-        msg.sender === "user" || msg.role === "user" ? "user" : "bot";
-
-      const content =
-        msg.text ??
-        msg.content ??
-        msg.message ??
-        (typeof msg === "string" ? msg : JSON.stringify(msg));
-
-      // don’t block the UI
-      fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, content }),
-      }).catch(() => {});
-    };
+    // don’t block the UI
+    fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role, content }),
+    }).catch(() => {});
+  };
 
     // Send all new messages
     newMessages.forEach(sendOne);
@@ -290,9 +357,17 @@ const submitQuery = async () => {
     lastSavedIndexRef.current = messages.length;
   }, [messages, session]);
 
-  useEffect(() => {
+useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+//added this to handle enter key press in input field
+const handleInputKeyDown = (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    submitQuery();
+  }
+};
 
   return (
     <div className="chat-page">
@@ -324,7 +399,7 @@ const submitQuery = async () => {
               <p className="message-text">
                 {msg.isTyping ? (
                   <>
-                    Scatbot is thinking
+                    
                     <span className="typing-indicator">
                       <span className="typing-dot"></span>
                       <span className="typing-dot"></span>
@@ -352,7 +427,7 @@ const submitQuery = async () => {
               type="text"
               placeholder="Ask a question"
               id="freeTextInput"
-
+              onKeyDown={handleInputKeyDown}
               //added disabled when loading 
               disabled={isLoading}
 
