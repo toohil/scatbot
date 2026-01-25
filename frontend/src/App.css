@@ -196,7 +196,7 @@ body {
 }
 
 .app-root {
-  min-height: 90vh;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   padding: 24px;
@@ -425,7 +425,7 @@ body {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 12px;
-  height: 80vh;
+  height: 500px;
 }
 
 .chat-window {
@@ -433,7 +433,7 @@ body {
   border: 1px solid #e5e7eb;
   padding: 14px 16px;
   background: #f9fafb;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .message {

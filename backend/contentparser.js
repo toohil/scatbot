@@ -1,24 +1,3 @@
-import dotenv from 'dotenv';
-import fs from 'node:fs';
-import { VectorPipeline } from './chatpipelines.js';
-import path from 'node:path';
-
-const __dirname = import.meta.dirname;
-const dbdir = path.join(__dirname, "db")
-
-dotenv.config();
-
-// Tiny helper so missing env vars fail loudly (instead of vague errors)
-function mustGetEnv(name) {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing env var: ${name} (check server/.env)`);
-  return v;
-}
-
-// const nhs_api_key = mustGetEnv("NHS_API_KEY")
-// console.log(nhs_api_key)
-
-
 // TODO:
 // 1. search & pull top (3?) pages from sources
 // 2. parse pages for content - likely per source depending on layout etc.
@@ -42,18 +21,9 @@ async function getMedlineData(keyword) {
   // 
 }
 
-async function getNHSData() {
+async function getNHSData(keyword) {
   // handling for NHS API - this will need an API key - env variable? Will eventually be handled in admin API.
-  const result = await fetch('https://sandbox.api.service.nhs.uk/nhs-website-content/health-a-to-z', {
-    method: "GET",
-    headers: {
-      accept: "application/json",
-      apikey: nhs_api_key
-    }
-    
-    }
-  )
-  return result
+
 }
 
 async function getLabTestsData(keyword) {
@@ -65,20 +35,21 @@ async function getLabTestsData(keyword) {
 
 function readFile(filename) {
   let file = fs.readFileSync(filename)
-  const instruct_arr = file.toString().split('\n')
+  const instruct_arr = file.toString().split('\r\n')
   const instruct_clean = []
 
-  for (const i of instruct_arr) {
-    if (i != '') {
-      instruct_clean.push(i.trim())
+  for (var i = 0; i < instruct_arr.length; i++) {
+    const instruction = instruct_arr.at(i)
+    if (instruction != '') {
+      instruct_clean.push(instruction)
     }
   }
 
   return instruct_clean
 }
 
-// const output = await getNHSData()
-// console.log(output)
+console.log(readFile('study_docs/SDJC01-PIL01 Stool Sample.docx.txt'))
+
 // import fs from 'fs';
 
 // DEMO CODE - INSERTING EMBEDDINGS INTO DB.
@@ -91,12 +62,3 @@ function readFile(filename) {
 //     await vector_pipe.addToIndex(instruction_clean)
 //   }
 // }
-const vpipe = new VectorPipeline(dbdir)
-await vpipe.loadModel()
-console.log("Model loaded")
-
-const instructions = readFile('./study_docs/rag-samples.txt')
-for (const i of instructions) {
-  await vpipe.addToIndex(i)
-  console.log("Added to index:",i)
-}
