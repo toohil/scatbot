@@ -29,5 +29,5 @@ dist-ssr
 backend/.env
 
 # avoid storing datafiles
-backend/study_docs
+backend/study_docs/*
 backend/db/*
