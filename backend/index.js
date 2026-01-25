@@ -16,9 +16,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const cb = new Chatbot();
+// const cb = new Chatbot();
 const db = new ChatLogger();
-await cb.initChatbot()
+const cdb = {}
 await db.init()
 
 // CHECK HEALTH
@@ -35,6 +35,9 @@ app.post("/api/session", async (_req, res) => {
     // something like https://www.npmjs.com/package/unique-names-generator would work well.
     const sessionId = crypto.randomUUID();
     await db.addUser(sessionId)
+    cdb[sessionId] = new Chatbot()
+    await cdb[sessionId].initChatbot()
+    console.log("Chatbot created for session:", sessionId)
 
     const output = await db.getUser(sessionId)
 
@@ -52,7 +55,7 @@ app.post("/api/session/:sessionId/chat", async (req, res) => {
     const { role, content } = req.body;
     console.log(content)
     db.addMessage(sessionId, role, content);
-    const response = await cb.getChatbotResponse(content);
+    const response = await cdb[sessionId].getChatbotResponse(content);
     db.addMessage(sessionId, "bot", response)
     console.log(response)
     
@@ -85,7 +88,7 @@ app.post("/api/session/:sessionId/kill-session", async (req, res) => {
   try {
 
     const { sessionId } = req.params;
-    cb.killChatbot()
+    cdb[sessionId].killChatbot()
 
   } catch (err) {
     console.error(err);

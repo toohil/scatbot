@@ -1,7 +1,14 @@
-// TODO:
-// 1. search & pull top (3?) pages from sources
-// 2. parse pages for content - likely per source depending on layout etc.
-// 3. run vectorpipeline
+import dotenv from 'dotenv';
+import fs from 'node:fs';
+import { VectorPipeline } from './chatpipelines.js';
+
+dotenv.config();
+
+function mustGetEnv(name) {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env var: ${name} (check server/.env)`);
+  return v;
+}
 
 async function getMedlineData(keyword) {
   const url = 'https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&term='+keyword;
@@ -16,26 +23,25 @@ async function getMedlineData(keyword) {
   } catch (error) {
     console.error(error.message);
   }
-
-  // parse for <document rank=0 (1,2,..?) > and retrieve url=example.com
-  // 
 }
 
 async function getNHSData(keyword) {
   // handling for NHS API - this will need an API key - env variable? Will eventually be handled in admin API.
-
-}
-
-async function getLabTestsData(keyword) {
-  // handling for labtestsonline. Plan here is to scrape file.
-  const index_url = 'https://labtestsonline.org.uk/tests-index'
-  const search_url = 'https://labtestsonline.org.uk/search?keywords='+keyword
-
+  const result = await fetch('https://sandbox.api.service.nhs.uk/nhs-website-content/health-a-to-z', {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      apikey: nhs_api_key
+    }
+    
+    }
+  )
+  return result
 }
 
 function readFile(filename) {
   let file = fs.readFileSync(filename)
-  const instruct_arr = file.toString().split('\r\n')
+  const instruct_arr = file.toString().split('\n')
   const instruct_clean = []
 
   for (var i = 0; i < instruct_arr.length; i++) {
@@ -48,45 +54,23 @@ function readFile(filename) {
   return instruct_clean
 }
 
-console.log(readFile('study_docs/SDJC01-PIL01 Stool Sample.docx.txt'))
-
-// import fs from 'fs';
-
-// DEMO CODE - INSERTING EMBEDDINGS INTO DB.
-// const text = fs.readFileSync('study_docs/SDJC01-PIL01 Stool Sample.docx.txt','utf-8')
-// const instructions = text.split('\r\n')
-// for (const i of instructions) {
-//   const instruction = i.replace(/[^a-z0-9áéíóúñü \.,_-]/gim,"");
-//   const instruction_clean = instruction.trim()
-//   if (instruction != "") {
-//     await vector_pipe.addToIndex(instruction_clean)
-//   }
-// }
-const vpipe = new VectorPipeline(dbdir)
+const vpipe = new VectorPipeline()
 await vpipe.loadModel()
-console.log("Model loaded")
 
-var vectordb = {
+const vectordb = {
   vectors: []
 }
 
 const instructions = readFile('./study_docs/rag-samples.txt')
 for (const text of instructions) {
   const vector = await vpipe.createVector(text)
-  console.log(
-    {"vector": vector,
-      "text": text
-    }
-  )
   vectordb.vectors.push({
     "vector": vector,
     "text": text
   })
-  
 }
 
 var vectorjson = JSON.stringify(vectordb)
-
-const datafile = fs.writeFile("vector_index.json", vectorjson, function(err){
+fs.writeFile("./db/vector_index.json", vectorjson, function(err){
     if(err) throw err;
-  })
+})

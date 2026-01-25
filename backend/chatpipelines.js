@@ -1,5 +1,5 @@
-import { pipeline } from '@huggingface/transformers';
-import { LocalIndex } from 'vectra';
+import { pipeline, cos_sim } from '@huggingface/transformers';
+import fs from 'node:fs';
 
 class GenericPipeline {
 
@@ -54,7 +54,7 @@ class VectorPipeline extends GenericPipeline {
     super(task, model)
     
     // create additional instance variable for vector index
-    this.index = new LocalIndex('db', 'vector_index.json')
+    this.db_path = './db/vector_index.json'
   }
 
   /**
@@ -63,9 +63,14 @@ class VectorPipeline extends GenericPipeline {
    */
   async loadModel() {
     // Create vector index if doesn't exist.
-    if (!(await this.index.isIndexCreated())) {
-      await this.index.createIndex();
-    };
+    if (fs.existsSync(this.db_path)) {
+      const fin = fs.readFileSync(this.db_path, "utf8", function(err){
+        if(err) console.log("Error reading index.");
+      })
+      this.index = JSON.parse(fin)
+    } else {    
+    this.index = { vectors: [] }
+    }
     // User parent class to load pipeline.
     await super.loadModel();
     return this.status
@@ -98,15 +103,15 @@ class VectorPipeline extends GenericPipeline {
     // convert to vector
     const vector = await this.createVector(text)
     // check if vector matches existing indexed content
-    const results = await this.queryIndex(vector, 1);
-    if (results.length > 0 && results[0].score > 0.999) {
+    const results = await this.queryIndex(vector);
+    if (results.length > 0 && results[0]["score"] > 0.999) {
       // do not re-add to index if vector is non-unique
       return 'Already in Index: '+text
     } else {
       // add vector and metadata (input text) to index
-      await this.index.insertItem({
-        vector: vector,
-        metadata: { text },
+      this.index.push({
+        "vector": vector,
+        "text": text,
       })
       return 'Added to Index: '+text
     }
@@ -118,22 +123,24 @@ class VectorPipeline extends GenericPipeline {
    * @param {number} count 
    * @returns {Promise<Array>} list of best matches, in dictionary keypairs with text, score.
    */
-  async queryIndex(vector, count) {
+  async queryIndex(vector) {
     // query index for vectors
-    const vectors = await this.index.queryItems(vector, '', count);
-    // initialise output array
-    const results = [];
-    if (vectors.length > 0) {
-      // only try to iterate if vectors array has values
-      for (const result of vectors) {
-        // construct results dictionary, format {'text': 'AB', 'score':xy}
-        const result_dict = {};
-        result_dict['text'] = result.item.metadata.text;
-        result_dict['score'] = result.score;
-        results.push(result_dict);
-      };
-    };
-    return results
+    const results = []
+    for (const v of this.index["vectors"]) {
+      let result = cos_sim(vector, v["vector"])
+      // if (result > 0.75) {
+      results.push({
+        "text": v["text"],
+        "score": result  
+      })
+      // }
+    }
+    if (results.length > 3) {
+      results.sort(function(a,b) {return b["score"]-a["score"]})
+      return results.slice(0,3)
+    } else {
+      return results
+    }
   };
 
   /**
@@ -143,18 +150,13 @@ class VectorPipeline extends GenericPipeline {
    */
   async getTextMatches(text) {
     // convert input to vector embedding
-    console.log("Received text to embed:",text)
     const vector_input = await this.createVector(text)
-    console.log("Created vector")
     // query index for this vector
-    const vector_matches = await this.queryIndex(vector_input, 3)
-    console.log("Received vectors")
+    const vector_matches = await this.queryIndex(vector_input)
     const text_matches = []
     // convert output dictionary array to simple list of text data
     for (const vector of vector_matches) {
-      console.log(vector)
-      text_matches.push(vector.text)
-      console.log(vector.text)
+      text_matches.push(vector["text"])
     }
     return text_matches
   }
@@ -168,8 +170,15 @@ class ChatbotPipeline extends GenericPipeline {
    */
   constructor() {
     const task = 'text-generation';
-    const model = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+    const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
     super(task, model)
+    const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys.
+      You will be given a PARTICIPANT QUERY, the INSTRUCTION they are currently following, and ADDITIONAL CONTEXT.
+      Address the participant directly in your responses. Use only information from the chat history and additional context.
+      Keep responses concise, just one sentence. If no relevant information is provided, reply that you do not know.`
+    this.chatlog = [{
+      role: "system", content: (system_prompt)
+      }]
   };
 
   /**
@@ -177,22 +186,28 @@ class ChatbotPipeline extends GenericPipeline {
    * @param {string} text User prompt
    * @returns {Promise<string>} Chatbot reply
    */
-  async askChatbot(chatlog) {
+  async askChatbot(text, context) {
     if (this.status == false) {
       // don't try to submit query if the model is not loaded
       return 'Must initialise model first'
     } else {
     // feed chatlog into transformer pipeline
-    const pipe_output = await this.pipe(chatlog, {
-      max_new_tokens: 200,
+    const new_prompt = `PARTICIPANT QUERY:
+      ${text}
+      ADDITIONAL CONTEXT:
+      ${context}`
+    this.chatlog.push({role:"user", content: new_prompt})
+    console.log(this.chatlog)
+    const pipe_output = await this.pipe(this.chatlog, {
+      max_new_tokens: 128,
       return_full_text: true
       }
     )
     // parse pipeline output for generated content
     const reply = pipe_output[0].generated_text.at(-1);
+    this.chatlog.push(reply)
     // push reply to chatlog and return
-    chatlog.push(reply);
-    return chatlog
+    return reply.content
     }
   };
 } 
