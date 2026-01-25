@@ -8,7 +8,6 @@ const STEPS = [
     text: `Welcome ,thank you for agreeing to take part in this research study.
 
 Over the next few minutes we'll walk you through how to collect and store your stool sample so the lab can analyse it correctly. You can choose to move to the next step, ask for more information about this study, or view commonly asked questions.`,
-    moreInfo: `This study is run by the research team to better understand gut health. Participation is voluntary and your samples are de-identified before analysis. If you have concerns about privacy or transport, contact the study coordinator.`,
   },
   {
     id: 1,
@@ -16,7 +15,6 @@ Over the next few minutes we'll walk you through how to collect and store your s
     text: `The stool sample should be as fresh as possible, ideally produced on the morning of your visit.
 
 If this is not possible, a sample from the evening or night before may be saved in a fridge. This is less ideal and may interfere with analysis, so a morning sample is preferred.`,
-    moreInfo: `Aim to collect within 24 hours of analysis; if you must keep it overnight, refrigerate immediately (not freezer). Avoid contamination with urine or water. If in doubt, contact the study team.`,
   },
   {
     id: 2,
@@ -28,13 +26,11 @@ If this is not possible, a sample from the evening or night before may be saved 
 • AnaeroGen sachet
 • Paper envelope
 • Freezer block`,
-    moreInfo: `Use the provided items only. The AnaeroGen creates an oxygen-free environment for some analyses; the freezer block keeps samples cold in transit. If any item is missing, contact the study coordinator before your appointment.`,
   },
   {
     id: 3,
     title: "Night before – freeze the block",
     text: `The night before you collect the sample, place the freezer block in your freezer so it is fully frozen by the morning.`,
-    moreInfo: `Freeze the block on a flat shelf so it freezes evenly. Do not put the freezer block inside the sample container. Keep it in its bag until packing to avoid contamination.`,
   },
   {
     id: 4,
@@ -43,7 +39,6 @@ If this is not possible, a sample from the evening or night before may be saved 
 
 • Place the frozen freezer block into one of the zip-lock bags.
 • Put on the disposable gloves.`,
-    moreInfo: `Lay out all materials before starting. Work on a clean surface and avoid touching the inside of the container or the stool. Change gloves if they become contaminated.`,
   },
   {
     id: 5,
@@ -54,7 +49,6 @@ Please:
 • Collect the entire bowel motion, not just part of it.
 • Avoid getting any urine into the container.
 • Do not wrap or cover the sample in toilet paper.`,
-    moreInfo: `If you find it difficult to collect the whole motion, try collecting the majority and note the time. If urine contamination occurs, discard the sample and contact the study team for advice. Wash hands thoroughly after collection.`,
   },
   {
     id: 6,
@@ -63,7 +57,6 @@ Please:
 
 • Tear off the top of the outer sachet (do not remove the inner sachet).
 • Within one minute of tearing the sachet, secure the lid of the container firmly.`,
-    moreInfo: `The AnaeroGen creates an oxygen-reduced atmosphere which helps preserve anaerobic organisms for some tests. Do not remove the inner sachet. Seal the lid quickly after activating the sachet.`,
   },
   {
     id: 7,
@@ -73,7 +66,6 @@ Please:
 • Remove and dispose of your gloves.
 • Seal this zip-lock bag.
 • Place this bag into the zip-lock bag that contains the frozen freezer block and seal again.`,
-    moreInfo: `Double-bagging prevents leaks and keeps the sample cold next to the freezer block. Wipe any external contamination from the bag before placing it into the envelope. Dispose of gloves and any waste safely.`,
   },
   {
     id: 8,
@@ -81,7 +73,6 @@ Please:
     text: `Place the zipped bag (containing the freezer block and the stool sample) into the paper envelope and seal it.
 
 Write the date and time of the stool sample clearly on the envelope.`,
-    moreInfo: `Use a permanent pen and write date/time in DD/MM/YYYY HH:MM format. Add your participant ID if supplied. Accurate labelling is essential for sample tracking and analysis.`,
   },
   {
     id: 9,
@@ -89,7 +80,6 @@ Write the date and time of the stool sample clearly on the envelope.`,
     text: `Place the sealed envelope in your fridge until you leave for your research lab session.
 
 Bring the envelope with you to your visit.`,
-    moreInfo: `Keep the envelope in the main body of the fridge (not the door) until transport. Bring the sample in a cool bag if your journey is long and hand it to study staff on arrival.`,
   },
 ];
 
@@ -129,22 +119,89 @@ function ChatbotPage({ onBack, session }) {
     }
   };
 
-  const handleMoreInfo = () => {
+  // Get the most recent non-typing bot message so "More info" expands the right thing
+const getLastBotMessage = () => {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.sender === "bot" && !m.isTyping) return m;
+  }
+  return null;
+};
+
+const handleMoreInfo = async () => {
+  // stop spam clicks
+  if (isLoading) return;
+
+  const sessionId = session?.session_id;
+  if (!sessionId) return;
+
+  // Find what we’re expanding (last bot message in the chat)
+  const lastBot = getLastBotMessage();
+  if (!lastBot) return;
+
+  // Show the user’s request in chat immediately
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: `user-more-${Date.now()}`,
+      sender: "user",
+      text: "Tell me more",
+    },
+  ]);
+
+  setIsLoading(true);
+  showTyping();
+
+  try {
+    const role = "user";
+
+    // IMPORTANT: include the last bot message so the LM knows what to expand on
+    const content = `Tell me more about your previous message. Expand with extra helpful details, tips, and clarification.
+Do not repeat the entire message verbatim. Use bullet points where helpful.
+
+Previous message title:
+${lastBot.title || "(no title)"}
+
+Previous message:
+${lastBot.text}`;
+
+    const response = await fetch(
+      `http://localhost:5174/api/session/${sessionId}/chat`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, content }),
+      }
+    );
+
+    const output = await response.json();
+
+    // Add the model's "more info" response
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-more-${currentStep.id}`,
-        sender: "user",
-        text: "Tell me more",
-      },
-      {
-        id: `bot-more-${currentStep.id}`,
+        id: `bot-more-${Date.now()}`,
         sender: "bot",
-        title: currentStep.title + " — More info",
-        text: currentStep.moreInfo || "There is no additional information for this step.",
+        title: `${lastBot.title ? lastBot.title + " — " : ""}More info`,
+        text: output.message,
       },
     ]);
-  };
+  } catch (e) {
+    // keep your existing error behaviour style
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `bot-error-${Date.now()}`,
+        sender: "bot",
+        text: "Sorry — something went wrong. Please try again.",
+      },
+    ]);
+  } finally {
+    hideTyping();
+    setIsLoading(false);
+  }
+};
+
 
   // Added loading state + typing message id ref
 const [isLoading, setIsLoading] = useState(false);
@@ -293,6 +350,13 @@ const submitQuery = async () => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+//added this to handle enter key press in input field
+  const handleInputKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitQuery();
+    }
+  };
 
   return (
     <div className="chat-page">
@@ -352,6 +416,8 @@ const submitQuery = async () => {
               type="text"
               placeholder="Ask a question"
               id="freeTextInput"
+
+              onKeyDown={handleInputKeyDown}
 
               //added disabled when loading 
               disabled={isLoading}
