@@ -190,8 +190,6 @@ class ChatbotPipeline extends GenericPipeline {
     return chatlog
     }
   };
-
-  
 } 
 
 export { ChatbotPipeline, VectorPipeline }
