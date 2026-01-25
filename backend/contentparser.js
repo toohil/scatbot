@@ -39,12 +39,11 @@ async function getNHSData(keyword) {
   return result
 }
 
-
 function readFile(filename) {
   let file = fs.readFileSync(filename)
   const instruct_arr = file.toString().split('\n')
   const instruct_clean = []
-  
+
   for (var i = 0; i < instruct_arr.length; i++) {
     const instruction = instruct_arr.at(i)
     if (instruction != '') {

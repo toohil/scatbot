@@ -173,7 +173,7 @@ class ChatbotPipeline extends GenericPipeline {
     const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
     super(task, model)
     const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys.
-      You will be given a USER QUERY, the INSTRUCTION they are currently following, and ADDITIONAL CONTEXT.
+      You will be given a PARTICIPANT QUERY, the INSTRUCTION they are currently following, and ADDITIONAL CONTEXT.
       Address the participant directly in your responses. Use only information from the chat history and additional context.
       Keep responses concise, just one sentence. If no relevant information is provided, reply that you do not know.`
     this.chatlog = [{
@@ -192,7 +192,7 @@ class ChatbotPipeline extends GenericPipeline {
       return 'Must initialise model first'
     } else {
     // feed chatlog into transformer pipeline
-    const new_prompt = `USER QUERY:
+    const new_prompt = `PARTICIPANT QUERY:
       ${text}
       ADDITIONAL CONTEXT:
       ${context}`
