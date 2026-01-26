@@ -51,9 +51,8 @@ app.post("/api/session/:sessionId/chat", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { step, role, content } = req.body;
-    db.addMessage(sessionId, role, content)
     const response = await cdb[sessionId].getChatbotResponse(step, content);
-    db.addMessage(sessionId, "bot", response)
+    db.addMessage( sessionId, "bot", response)
     res.json({ message: response })
   } catch (err) {
     console.error(err);
@@ -67,7 +66,7 @@ app.post("/api/session/:sessionId/logger", async (req, res) => {
     const { role, content } = req.body;
 
     db.addMessage(sessionId, role, content)
-
+    res.json({ status: "ok" })
   } catch (err) {
 
   }

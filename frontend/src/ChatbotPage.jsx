@@ -313,7 +313,7 @@ useEffect(() => {
   if (newMessages.length === 0) return;
 
   const sendOne = async (msg) => {
-  
+    
     const role =
       msg.sender === "user" || msg.role === "user" ? "user" : "bot";
 
@@ -322,17 +322,20 @@ useEffect(() => {
       msg.content ??
       msg.message ??
       (typeof msg === "string" ? msg : JSON.stringify(msg));
+    
+    // typing indicators were showing up in db
+      if (content === "TYPING INDICATOR") return;
 
     // don’t block the UI
-    fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {
+    await fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role, content }),
     }).catch(() => {});
-  };
+    };
 
     // Send all new messages
-    // newMessages.forEach(sendOne);
+    newMessages.forEach(sendOne);
 
     // Mark them as saved (so we don’t resend)
     lastSavedIndexRef.current = messages.length;
