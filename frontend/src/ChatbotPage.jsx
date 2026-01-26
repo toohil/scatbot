@@ -5,8 +5,7 @@ const STEPS = [
   {
     id: 0,
     title: "Welcome to the study",
-    text: `Welcome ,thank you for agreeing to take part in this research study.
-
+    text: `Welcome, thank you for agreeing to take part in this research study.
 Over the next few minutes we'll walk you through how to collect and store your stool sample so the lab can analyse it correctly. You can choose to move to the next step, ask for more information about this study, or view commonly asked questions.`,
   },
   {
@@ -20,12 +19,12 @@ If this is not possible, a sample from the evening or night before may be saved 
     id: 2,
     title: "What is in the sample pack?",
     text: `Your sample pack contains:
-• Plastic lunch-box sized container with lid
-• Disposable gloves
-• 2 × zip-lock bags
-• AnaeroGen sachet
-• Paper envelope
-• Freezer block`,
+      • Plastic lunch-box sized container with lid
+      • Disposable gloves
+      • 2 × zip-lock bags
+      • AnaeroGen sachet
+      • Paper envelope
+      • Freezer block`,
   },
   {
     id: 3,
@@ -38,17 +37,16 @@ If this is not possible, a sample from the evening or night before may be saved 
     text: `On the morning of collection:
 
 • Place the frozen freezer block into one of the zip-lock bags.
-• Put on the disposable gloves.`,
+      • Put on the disposable gloves.`,
   },
   {
     id: 5,
     title: "Collecting the stool sample",
     text: `Place the plastic container onto the toilet bowl and pass your bowel movement into this container.
-
-Please:
-• Collect the entire bowel motion, not just part of it.
-• Avoid getting any urine into the container.
-• Do not wrap or cover the sample in toilet paper.`,
+      Please:
+      • Collect the entire bowel motion, not just part of it.
+      • Avoid getting any urine into the container.
+      • Do not wrap or cover the sample in toilet paper.`,
   },
   {
     id: 6,
@@ -62,24 +60,21 @@ Please:
     id: 7,
     title: "Sealing the sample",
     text: `Place the sealed plastic container into the empty zip-lock bag.
-
-• Remove and dispose of your gloves.
-• Seal this zip-lock bag.
-• Place this bag into the zip-lock bag that contains the frozen freezer block and seal again.`,
+    • Remove and dispose of your gloves.
+    • Seal this zip-lock bag.
+    • Place this bag into the zip-lock bag that contains the frozen freezer block and seal again.`,
   },
   {
     id: 8,
     title: "Packing and labelling",
     text: `Place the zipped bag (containing the freezer block and the stool sample) into the paper envelope and seal it.
-
-Write the date and time of the stool sample clearly on the envelope.`,
+      Write the date and time of the stool sample clearly on the envelope.`,
   },
   {
     id: 9,
     title: "Storing before your visit",
     text: `Place the sealed envelope in your fridge until you leave for your research lab session.
-
-Bring the envelope with you to your visit.`,
+      Bring the envelope with you to your visit.`,
   },
 ];
 
@@ -158,14 +153,15 @@ const handleMoreInfo = async () => {
   try {
     const role = "user";
     // IMPORTANT: include the last bot message so the LM knows what to expand on
-    const content = `Give more detail on this step: ${lastBot.text}`;
+    const content = `Tell me something new, related to the current step.`;
+    const step = lastBot.text
 
     const response = await fetch(
       `http://localhost:5174/api/session/${sessionId}/chat`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, content }),
+        body: JSON.stringify({ step, role, content }),
       }
     );
 
@@ -243,6 +239,7 @@ const submitQuery = async () => {
   const role = "user";
   const textbox = document.getElementById("freeTextInput");
   const content = textbox.value;
+  const step = currentStep.text;
   // added this heree to clear input field automatically
   textbox.value = "";
 
@@ -267,7 +264,7 @@ const submitQuery = async () => {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, content }),
+        body: JSON.stringify({ step, role, content }),
       }
     ).catch(() => {});
 
@@ -327,7 +324,7 @@ useEffect(() => {
       (typeof msg === "string" ? msg : JSON.stringify(msg));
 
     // don’t block the UI
-    fetch(`http://localhost:5174/api/session/${sessionId}/message`, {
+    fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role, content }),
@@ -335,7 +332,7 @@ useEffect(() => {
   };
 
     // Send all new messages
-    newMessages.forEach(sendOne);
+    // newMessages.forEach(sendOne);
 
     // Mark them as saved (so we don’t resend)
     lastSavedIndexRef.current = messages.length;

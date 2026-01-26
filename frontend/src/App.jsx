@@ -27,6 +27,7 @@ function App() {
         setScreen("chat");
       } catch (e) {
         // Fallback: allow chat to open even if backend is down
+        // We could keep this, but would need to explicitly disable freetext.
         // const localId =
         //   (globalThis.crypto && crypto.randomUUID && crypto.randomUUID()) ||
         //   `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -47,7 +48,17 @@ function App() {
         <LandingPage onStart={startChat} starting={starting} />
       ) : (
         <ChatbotPage
-          onBack={() => setScreen("landing")}
+          onBack={function() {
+            const sessionId = session?.session_id;
+            fetch(`http://localhost:5174/api/session/${sessionId}/kill-session`,
+                  {
+                  method: "POST",
+                }
+              ).catch(() => {});
+            setScreen("landing")
+            
+            }
+          }
           session={session}
         />
       )}

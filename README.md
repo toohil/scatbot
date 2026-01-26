@@ -1,33 +1,27 @@
 # chatbot-fyp
 
-#run DB locally
-
-## Run locally
-
-### Requirements
+## Requirements
 
 - Node.js
 
+## Setup
 ### 1) Install dependencies
-
 ```bash
-cd frontend && npm install
-cd backend && npm install
-
-
-2) configure the env variables
-
-cp backend/.env.example backend/.env
-
-
-4)start the backend server
-
-cd backend
-node index.js
-
-5) start the frontend
-
-cd frontend
-npm run dev
-
+cd ./frontend && npm install
+cd ./backend && npm install
 ```
+
+### 2) Start the backend server
+```bash
+cd ./backend
+node ./index.js
+```
+
+### 3) Start the frontend
+```bash
+cd frontend
+npm run dev # Local: http://localhost:5173/  
+```
+
+## Logs
+backend/db/chat_messages.db
