@@ -1,7 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import { ChatbotPipeline, VectorPipeline } from './chatpipelines.js';
-import { MimiDecoderOutput } from '@huggingface/transformers';
 
 // I think data_dir should eventually be implemented as an env variable.
 // for the time being, declaring it here lets us pass it to the vector pipeline, keeping everything in the same place.
@@ -99,16 +98,15 @@ class Chatbot {
     return this.status;
   }
 
-  async getChatbotResponse(text) {
+  async getChatbotResponse(step, text) {
     const context = await vpipe.getTextMatches(text);
     const context_str = context.toString();
-    const output = await this.cpipe.askChatbot(String(text), context_str);
+    const output = await this.cpipe.askChatbot(step, text, context_str);
     return output;
   }
 
   async killChatbot() {
     this.cpipe.unloadModel();
-    this.vpipe.unloadModel();
   }
 }
 

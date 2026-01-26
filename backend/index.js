@@ -38,9 +38,7 @@ app.post("/api/session", async (_req, res) => {
     cdb[sessionId] = new Chatbot()
     await cdb[sessionId].initChatbot()
     console.log("Chatbot created for session:", sessionId)
-
     const output = await db.getUser(sessionId)
-
     res.json(output)
   } catch (err) {
     console.error(err);
@@ -52,13 +50,10 @@ app.post("/api/session", async (_req, res) => {
 app.post("/api/session/:sessionId/chat", async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { role, content } = req.body;
-    console.log(content)
-    db.addMessage(sessionId, role, content);
-    const response = await cdb[sessionId].getChatbotResponse(content);
+    const { step, role, content } = req.body;
+    db.addMessage(sessionId, role, content)
+    const response = await cdb[sessionId].getChatbotResponse(step, content);
     db.addMessage(sessionId, "bot", response)
-    console.log(response)
-    
     res.json({ message: response })
   } catch (err) {
     console.error(err);
@@ -66,8 +61,16 @@ app.post("/api/session/:sessionId/chat", async (req, res) => {
   }
 });
 
-app.post("/api/session/:sessionId/message", async (req, res) => {
+app.post("/api/session/:sessionId/logger", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { role, content } = req.body;
 
+    db.addMessage(sessionId, role, content)
+
+  } catch (err) {
+
+  }
 });
 
 // GET MESSAGES
@@ -83,12 +86,14 @@ app.get("/api/session/:sessionId/messages", async (req, res) => {
   }
 });
 
-// END SESSION (right now this actually unloads models entirely, not technically the same thing)
+// END SESSION (reclaims memory)
 app.post("/api/session/:sessionId/kill-session", async (req, res) => {
   try {
 
     const { sessionId } = req.params;
-    cdb[sessionId].killChatbot()
+    console.log("Killing session with ID:",sessionId)
+    await cdb[sessionId].killChatbot()
+    delete cdb[sessionId]
 
   } catch (err) {
     console.error(err);
