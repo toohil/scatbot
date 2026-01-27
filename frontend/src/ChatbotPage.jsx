@@ -324,7 +324,7 @@ useEffect(() => {
       (typeof msg === "string" ? msg : JSON.stringify(msg));
     
     // typing indicators were showing up in db
-      if (content === "TYPING INDICATOR") return;
+    if (msg.isTyping) return;
 
     // don’t block the UI
     await fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {

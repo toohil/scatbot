@@ -11,33 +11,27 @@ function App() {
 
   const startChat = async () => {
     // preventing multiple sessions from being attempted while loading
-    if (starting != true) {
-      setStarting(true);
+    if (starting === true) return;
+    
+    setStarting(true);
+    
+    try {
+      // Try create a session on the backend (stored in MySQL)
+      const res = await fetch("http://localhost:5174/api/session", {
+        method: "POST",
+      });
 
-      try {
-        // Try create a session on the backend (stored in MySQL)
-        const res = await fetch("http://localhost:5174/api/session", {
-          method: "POST",
-        });
+      if (!res.ok) throw new Error("Failed to create session");
 
-        if (!res.ok) throw new Error("Failed to create session");
-
-        const data = await res.json(); // { session_id, created_at, last_seen }
-        setSession({ ...data, offline: false });
-        setScreen("chat");
-      } catch (e) {
-        // Fallback: allow chat to open even if backend is down
-        // We could keep this, but would need to explicitly disable freetext.
-        // const localId =
-        //   (globalThis.crypto && crypto.randomUUID && crypto.randomUUID()) ||
-        //   `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-        // setSession({ session_id: localId, offline: true });
-        // setScreen("chat");
-        console.log("Some error.")
-      } finally {
-        setStarting(false);
-      }
+      const data = await res.json(); // { session_id, created_at, last_seen }
+      setSession({ ...data, offline: false });
+      setScreen("chat");
+    } catch (e) {
+      // Fallback: could support chat opening even if backend is down
+      console.log("Error occurred. Check backend is available.")
+    } finally {
+      // allow retries if error occurs (e.g. backend still starting)
+      setStarting(false);
     }
   };
 
