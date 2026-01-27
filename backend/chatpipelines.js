@@ -168,27 +168,11 @@ class ChatbotPipeline extends GenericPipeline {
   /**
    * Constructor for ChatbotPipeline object, used to generate text.
    */
-  constructor() {
+  constructor(system_prompt) {
     const task = 'text-generation';
     const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
     super(task, model)
-    const steps = `- The night before sample gathering, place the freezer block in the freezer overnight to freeze. 
-      - Place the frozen freezer block in one of the ziplock bags.
-      - Put on the disposable gloves.
-      - Place the plastic container onto the toilet bowl and perform bowel movement into this (the whole bowel motion, not just part of it). Please avoid getting any urine in the plastic container and do not wrap or cover the sample in toilet paper.
-      - Tear off the top of the AnaeroGen sachet which is taped to the lid of the container (see image below). Do not remove the inner sachet.
-      - Within one minute of tearing the top of the sachet, secure the lid of the container firmly, and place the plastic container in second zip lock bag (i.e. the empty bag).
-      - Remove and dispose of gloves.
-      - Seal the zip lock bag, place the ziplock bag with the stool sample into the ziplock bag containing the frozen freezer block, and seal.
-      - Place the ziplock bag (containing the freezer block, and containing the ziplock bag with the stool sample) in the paper envelope and seal.
-      - Write down the date and the time of the stool sample on the envelope. 
-      - Place the sample in the fridge until you leave for the research lab session`
-
-    const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
-      ${steps}
-      You will be given a PARTICIPANT QUERY, the CURRENT STEP they are following, and ADDITIONAL CONTEXT.
-      Address the participant directly in your responses, using the provided context. Keep responses concise, just one sentence.
-      If the participant's question is not in any of the context provided, reply that you do not know.`
+    
     this.chatlog = [{
       role: "system", content: (system_prompt)
       }]
@@ -199,18 +183,13 @@ class ChatbotPipeline extends GenericPipeline {
    * @param {string} text User prompt
    * @returns {Promise<string>} Chatbot reply
    */
-  async askChatbot(step, text, context) {
+  async askChatbot(text) {
     if (this.status == false) {
       // don't try to submit query if the model is not loaded
       return 'Must initialise model first'
     } else {
     // feed chatlog into transformer pipeline
-    const new_prompt = `PARTICIPANT QUERY:
-      I am currently following this instruction: ${step}
-      Please help me with the following: ${text}
-      ADDITIONAL CONTEXT:
-      ${context}`
-    this.chatlog.push({role:"user", content: new_prompt})
+    this.chatlog.push({role:"user", content: text})
     const pipe_output = await this.pipe(this.chatlog, {
       max_new_tokens: 128,
       return_full_text: true

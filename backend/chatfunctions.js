@@ -85,7 +85,25 @@ await vpipe.loadModel()
 class Chatbot {
 
   constructor() { 
-    this.cpipe = new ChatbotPipeline();
+    const steps = `- The night before sample gathering, place the freezer block in the freezer overnight to freeze. 
+      - Place the frozen freezer block in one of the ziplock bags.
+      - Put on the disposable gloves.
+      - Place the plastic container onto the toilet bowl and perform bowel movement into this (the whole bowel motion, not just part of it). Please avoid getting any urine in the plastic container and do not wrap or cover the sample in toilet paper.
+      - Tear off the top of the AnaeroGen sachet which is taped to the lid of the container (see image below). Do not remove the inner sachet.
+      - Within one minute of tearing the top of the sachet, secure the lid of the container firmly, and place the plastic container in second zip lock bag (i.e. the empty bag).
+      - Remove and dispose of gloves.
+      - Seal the zip lock bag, place the ziplock bag with the stool sample into the ziplock bag containing the frozen freezer block, and seal.
+      - Place the ziplock bag (containing the freezer block, and containing the ziplock bag with the stool sample) in the paper envelope and seal.
+      - Write down the date and the time of the stool sample on the envelope. 
+      - Place the sample in the fridge until you leave for the research lab session`
+
+    const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
+      ${steps}
+      You will be given a PARTICIPANT QUERY, the CURRENT STEP they are following, and ADDITIONAL CONTEXT.
+      Address the participant directly in your responses, using the provided context. Keep responses concise, just one sentence.
+      If the participant's question is not in any of the context provided, reply that you do not know.`
+
+    this.cpipe = new ChatbotPipeline(system_prompt);
     this.status = false;
   }
 
@@ -101,7 +119,12 @@ class Chatbot {
   async getChatbotResponse(step, text) {
     const context = await vpipe.getTextMatches(text);
     const context_str = context.toString();
-    const output = await this.cpipe.askChatbot(step, text, context_str);
+    const prompt = `PARTICIPANT QUERY:
+      I am currently following this instruction: ${step}
+      Please help me with the following: ${text}
+      ADDITIONAL CONTEXT:
+      ${context_str}`
+    const output = await this.cpipe.askChatbot(prompt);
     return output;
   }
 
