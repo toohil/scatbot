@@ -35,6 +35,7 @@ app.post("/api/session", async (_req, res) => {
     // something like https://www.npmjs.com/package/unique-names-generator would work well.
     const sessionId = crypto.randomUUID();
     await db.addUser(sessionId)
+    console.log("User created with ID:", sessionId)
     cdb[sessionId] = new Chatbot()
     await cdb[sessionId].initChatbot()
     console.log("Chatbot created for session:", sessionId)

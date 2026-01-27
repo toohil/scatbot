@@ -205,3 +205,11 @@ class ChatbotPipeline extends GenericPipeline {
 } 
 
 export { ChatbotPipeline, VectorPipeline }
+
+// const vpipe = new VectorPipeline()
+// await vpipe.loadModel()
+// vpipe.unloadModel()
+
+// const cpipe = new ChatbotPipeline("You are a helpful assistant")
+// await cpipe.loadModel()
+// cpipe.unloadModel()
