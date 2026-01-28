@@ -1,82 +1,9 @@
 // src/ChatbotPage.jsx
 import { useState, useEffect, useRef } from "react";
 
-const STEPS = [
-  {
-    id: 0,
-    title: "Welcome to the study",
-    text: `Welcome, thank you for agreeing to take part in this research study.
-Over the next few minutes we'll walk you through how to collect and store your stool sample so the lab can analyse it correctly. You can choose to move to the next step, ask for more information about this study, or view commonly asked questions.`,
-  },
-  {
-    id: 1,
-    title: "Sample freshness",
-    text: `The stool sample should be as fresh as possible, ideally produced on the morning of your visit.
-
-If this is not possible, a sample from the evening or night before may be saved in a fridge. This is less ideal and may interfere with analysis, so a morning sample is preferred.`,
-  },
-  {
-    id: 2,
-    title: "What is in the sample pack?",
-    text: `Your sample pack contains:
-      • Plastic lunch-box sized container with lid
-      • Disposable gloves
-      • 2 × zip-lock bags
-      • AnaeroGen sachet
-      • Paper envelope
-      • Freezer block`,
-  },
-  {
-    id: 3,
-    title: "Night before – freeze the block",
-    text: `The night before you collect the sample, place the freezer block in your freezer so it is fully frozen by the morning.`,
-  },
-  {
-    id: 4,
-    title: "Prepare to collect the sample",
-    text: `On the morning of collection:
-
-• Place the frozen freezer block into one of the zip-lock bags.
-      • Put on the disposable gloves.`,
-  },
-  {
-    id: 5,
-    title: "Collecting the stool sample",
-    text: `Place the plastic container onto the toilet bowl and pass your bowel movement into this container.
-      Please:
-      • Collect the entire bowel motion, not just part of it.
-      • Avoid getting any urine into the container.
-      • Do not wrap or cover the sample in toilet paper.`,
-  },
-  {
-    id: 6,
-    title: "Using the AnaeroGen sachet",
-    text: `On the lid of the container there is an AnaeroGen sachet taped on.
-
-• Tear off the top of the outer sachet (do not remove the inner sachet).
-• Within one minute of tearing the sachet, secure the lid of the container firmly.`,
-  },
-  {
-    id: 7,
-    title: "Sealing the sample",
-    text: `Place the sealed plastic container into the empty zip-lock bag.
-    • Remove and dispose of your gloves.
-    • Seal this zip-lock bag.
-    • Place this bag into the zip-lock bag that contains the frozen freezer block and seal again.`,
-  },
-  {
-    id: 8,
-    title: "Packing and labelling",
-    text: `Place the zipped bag (containing the freezer block and the stool sample) into the paper envelope and seal it.
-      Write the date and time of the stool sample clearly on the envelope.`,
-  },
-  {
-    id: 9,
-    title: "Storing before your visit",
-    text: `Place the sealed envelope in your fridge until you leave for your research lab session.
-      Bring the envelope with you to your visit.`,
-  },
-];
+const welcome_msg =
+`Thank you for agreeing to take part in this research study. Over the next few minutes we'll walk you through the study procedure.
+You can choose to move to the next step, ask for more information about this study, ask a question. Response content is AI generated.`
 
 function ChatbotPage({ onBack, session }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -84,8 +11,8 @@ function ChatbotPage({ onBack, session }) {
     {
       id: `bot-${currentIndex}`,
       sender: "bot",
-      text: STEPS[0].text,
-      title: STEPS[0].title,
+      text: welcome_msg,
+      title: "Welcome to the Study",
     },
   ]);
 
@@ -95,23 +22,13 @@ function ChatbotPage({ onBack, session }) {
   const currentStep = STEPS[currentIndex];
   const totalSteps = STEPS.length;
 
-  function checkMessage(role, type) {
+  function checkMessage(type) {
     // returns number of messages per step and type (free/more)
-    // allows us to keep message IDs for freetext etc. unique, but incremental by step and message
-    
-    // init matches count
-    let chars = 10
-    // user role adds an extra character to the ID length (vs bot)
-    // could change role identifier entirely to "usr" but that be more intrusive
-    if (role === "user") {  
-      chars++
-
-    }
     let matches = 0
     // iterate over messages
     for (const m of messages) {
       // get first (chars) places of message ID - will be (role)-(index)-(type)
-      if (m?.id.slice(0,chars) === `${role}-${currentIndex}-${type}`) {
+      if (m?.id.slice(0,11) === `user-${currentIndex}-${type}`) {
         // increment match count for each valid result
         matches++
       }
@@ -120,28 +37,55 @@ function ChatbotPage({ onBack, session }) {
     return matches
   }
 
-  const handleNext = () => {
+  async function getChatbotResponse(qu_id,rs_id,type,content) {
+    try {
+      const response = await fetch(
+        `http://localhost:5174/api/session/${sessionId}/chat`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ qu_id, rs_id, type, content }),
+        }
+      );
+      const output = await response.json()
+      return output.message
+    } catch (e) {
+      return "Something went wrong. Please try again."
+    }
+  }
+
+  const handleNext = async () => {
     // can't skip to next step while chatbot response pending
     if (isLoading) return;
     
     if (currentIndex < totalSteps - 1) {
       const nextIndex = currentIndex + 1;
+      const query_id = `user-${currentIndex}`
+      const response_id = `bot-${nextIndex}`
+
+
       setMessages((prev) => [
         ...prev,
         {
           id: `user-${currentIndex}`,
           sender: "user",
           text: "Okay, got it – next step.",
-        },
-        {
-          id: `bot-${currentIndex+1}`,
-          sender: "bot",
-          title: STEPS[nextIndex].title,
-          text: STEPS[nextIndex].text,
-        },
+        }
       ]);
 
-      setCurrentIndex(currentIndex+1);
+      const response = await getChatbotResponse(query_id,response_id,"step","")
+      setCurrentIndex(nextIndex);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: response_id,
+          sender: "bot",
+          title: `Step ${currentIndex}`,
+          text: response,
+        }
+      ]);
+
     }
   };
 
@@ -163,11 +107,15 @@ function ChatbotPage({ onBack, session }) {
     const lastBot = getLastBotMessage();
     if (!lastBot) return;
 
-      // Show the user’s request in chat immediately
+    // Show the user’s request in chat immediately
+    const msg_count = checkMessage("more")
+    const query_id = `user-${currentIndex}-more-${msg_count}`
+    const response_id = `bot-${currentIndex}-more-${msg_count}`
+
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-${currentIndex}-more-${checkMessage("user","more")}`,
+        id: query_id,
         sender: "user",
         text: "Tell me more",
       },
@@ -176,47 +124,22 @@ function ChatbotPage({ onBack, session }) {
     setIsLoading(true);
     showTyping();
 
-    try {
-      const role = "user";
-      // IMPORTANT: include the last bot message so the LM knows what to expand on
-      const content = `Tell me something new, related to the current step.`;
-      const step = lastBot.text
+    const response = await getChatbotResponse(query_id,response_id,"more","")
 
-      const response = await fetch(
-        `http://localhost:5174/api/session/${sessionId}/chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ step, role, content }),
-        }
-      );
-
-      const output = await response.json();
-
-      // Add the model's "more info" response
-      setMessages((prev) => [
-        ...prev,
-        {        
-          id: `bot-${currentIndex}-more-${checkMessage("bot","more")}`,
-          sender: "bot",
-          title: `More Info: ${lastBot.title}`,
-          text: output.message,
-        },
+    // Add the model's "more info" response
+    setMessages((prev) => [
+      ...prev,
+      {        
+        id: response_id,
+        sender: "bot",
+        title: `Step ${currentIndex} - More Info`,
+        text: response,
+      },
       ]);
-    } catch (e) {
-      // keep your existing error behaviour style
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-error-${Date.now()}`,
-          sender: "bot",
-          text: "Sorry — something went wrong. Please try again.",
-        },
-      ]);
-    } finally {
-      hideTyping();
-      setIsLoading(false);
-    }
+    
+    hideTyping();
+    setIsLoading(false);
+  
   };
 
   // Added loading state + typing message id ref
@@ -264,15 +187,18 @@ function ChatbotPage({ onBack, session }) {
     //turning on typing UI
     const textbox = document.getElementById("freeTextInput");
     const content = textbox.value;
-    const step = currentStep.text;
     // added this heree to clear input field automatically
     textbox.value = "";
+
+    const msg_count = checkMessage("free")
+    const query_id = `user-${currentIndex}-free-${msg_count}`
+    const response_id = `bot-${currentIndex}-free-${msg_count}`
 
     // render query before sending 
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-${currentIndex}-free-${checkMessage("user","free")}`,
+        id: query_id,
         sender: "user",
         text: content,
       },
@@ -280,47 +206,23 @@ function ChatbotPage({ onBack, session }) {
 
     setIsLoading(true);
     showTyping();
-
-    // added try/finally causen without them any error was leaving the Go button disabled .
-    try {
-
-      const response = await fetch(
-        `http://localhost:5174/api/session/${sessionId}/chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ step, content }),
-        }
-      ).catch(() => {});
-
       
-      const output = await response.json();
+    const response = await getChatbotResponse(query_id,response_id,"free",content);
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-${currentIndex}-free-${checkMessage("bot","free")}`,
-          sender: "bot",
-          title: `Q: ${content}`,
-          text: `${output["message"]}`,
-        },
-      ]);
-    } catch (e) {
-      //  show a  bot error message instead of silently breaking.
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-error-${Date.now()}`,
-          sender: "bot",
-          text: "Sorry — something went wrong. Please try again.",
-        },
-      ]);
-    } finally {
-      // Always remove the typing bubble and re-enable the Go button.
-      // This runs whether the request succeeds or fails.
-      hideTyping();
-      setIsLoading(false);
-    }
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: response_id,
+        sender: "bot",
+        title: `Step ${currentIndex} - User Query`,
+        text: response,
+      },
+    ]);
+
+    // Always remove the typing bubble and re-enable the Go button.
+    // This runs whether the request succeeds or fails.
+    hideTyping();
+    setIsLoading(false);
   };
 
   const atEnd = currentIndex === totalSteps - 1;
