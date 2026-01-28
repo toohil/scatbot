@@ -36,14 +36,14 @@ function ChatbotPage({ onBack, session }) {
     return matches
   }
 
-  async function getChatbotResponse(id, type, content) {
+  async function getChatbotResponse(qid, rid, type, content) {
     try {
       const response = await fetch(
         `http://localhost:5174/api/session/${sessionId}/chat`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, type, content }),
+          body: JSON.stringify({ qid, rid, type, content }),
         }
       );
       const output = await response.json()
@@ -59,7 +59,7 @@ function ChatbotPage({ onBack, session }) {
     
     if (currentIndex < totalSteps - 1) {
       const nextIndex = currentIndex + 1;
-      const query_id = `user-${currentIndex}`
+      const query_id = `user-${nextIndex}`
       const response_id = `bot-${nextIndex}`
 
 
@@ -75,7 +75,7 @@ function ChatbotPage({ onBack, session }) {
       setIsLoading(true);
       showTyping();
 
-      const response = await getChatbotResponse(response_id,"step","")
+      const response = await getChatbotResponse(query_id, response_id,"step","")
       setCurrentIndex(nextIndex);
 
       setMessages((prev) => [
@@ -129,7 +129,7 @@ function ChatbotPage({ onBack, session }) {
     setIsLoading(true);
     showTyping();
 
-    const response = await getChatbotResponse(response_id,"more","")
+    const response = await getChatbotResponse(query_id, response_id,"more","")
 
     // Add the model's "more info" response
     setMessages((prev) => [
@@ -206,7 +206,7 @@ function ChatbotPage({ onBack, session }) {
     setIsLoading(true);
     showTyping();
       
-    const response = await getChatbotResponse(response_id,"free",content);
+    const response = await getChatbotResponse(query_id, response_id,"free",content);
 
     setMessages((prev) => [
       ...prev,
@@ -225,49 +225,49 @@ function ChatbotPage({ onBack, session }) {
   };
 
   const atEnd = currentIndex === totalSteps - 1;
-  const lastSavedIndexRef = useRef(0);
+  // const lastSavedIndexRef = useRef(0);
 
   const bottomRef = useRef(null);
 
-  useEffect(() => {
-    // You must have the session id available (passed from App)
-    const sessionId = session?.session_id;
-    if (!sessionId) return;
+  // useEffect(() => {
+  //   // You must have the session id available (passed from App)
+  //   const sessionId = session?.session_id;
+  //   if (!sessionId) return;
 
-    // Only send messages that were added since last time
-    const newMessages = messages.slice(lastSavedIndexRef.current);
-    if (newMessages.length === 0) return;
+  //   // Only send messages that were added since last time
+  //   const newMessages = messages.slice(lastSavedIndexRef.current);
+  //   if (newMessages.length === 0) return;
 
-    const sendOne = async (msg) => {
+  //   const sendOne = async (msg) => {
       
-      const role =
-        msg.sender === "user" || msg.role === "user" ? "user" : "bot";
+  //     const role =
+  //       msg.sender === "user" || msg.role === "user" ? "user" : "bot";
 
-      const id = msg.id
+  //     const id = msg.id
       
-      const content =
-        msg.text ??
-        msg.content ??
-        msg.message ??
-        (typeof msg === "string" ? msg : JSON.stringify(msg));
+  //     const content =
+  //       msg.text ??
+  //       msg.content ??
+  //       msg.message ??
+  //       (typeof msg === "string" ? msg : JSON.stringify(msg));
       
-        // typing indicators were showing up in db
-        if (msg.isTyping) return;
+  //       // typing indicators were showing up in db
+  //       if (msg.isTyping) return;
 
-        // don’t block the UI
-        await fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, role, content }),
-        }).catch(() => {});
-    };
+  //       // don’t block the UI
+  //       await fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({ id, role, content }),
+  //       }).catch(() => {});
+  //   };
 
-    // Send all new messages
-    newMessages.forEach(sendOne);
+  //   // Send all new messages
+  //   newMessages.forEach(sendOne);
 
-    // Mark them as saved (so we don’t resend)
-    lastSavedIndexRef.current = messages.length;
-  }, [messages, session]);
+  //   // Mark them as saved (so we don’t resend)
+  //   lastSavedIndexRef.current = messages.length;
+  // }, [messages, session]);
 
   useEffect(() => {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -355,10 +355,10 @@ function ChatbotPage({ onBack, session }) {
           {!atEnd ? (
             <div className="quick-replies">
               <button className="chip" type="button" onClick={handleNext}>
-                 Next
+                 Continue to Next Step
               </button>
               <button className="chip" type="button" onClick={handleMoreInfo}>
-                 More info
+                 Get More Information
               </button>
             </div>
           ) : (
