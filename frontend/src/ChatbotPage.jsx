@@ -19,9 +19,6 @@ function ChatbotPage({ onBack, session }) {
   // declare session ID early instead of per function
   const sessionId = session?.session_id
 
-  const currentStep = STEPS[currentIndex];
-  const totalSteps = STEPS.length;
-
   function checkMessage(type) {
     // returns number of messages per step and type (free/more)
     let matches = 0
@@ -37,14 +34,14 @@ function ChatbotPage({ onBack, session }) {
     return matches
   }
 
-  async function getChatbotResponse(qu_id,rs_id,type,content) {
+  async function getChatbotResponse(id, type, content) {
     try {
       const response = await fetch(
         `http://localhost:5174/api/session/${sessionId}/chat`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ qu_id, rs_id, type, content }),
+          body: JSON.stringify({ id, type, content }),
         }
       );
       const output = await response.json()
@@ -67,13 +64,13 @@ function ChatbotPage({ onBack, session }) {
       setMessages((prev) => [
         ...prev,
         {
-          id: `user-${currentIndex}`,
+          id: query_id,
           sender: "user",
           text: "Okay, got it – next step.",
         }
       ]);
 
-      const response = await getChatbotResponse(query_id,response_id,"step","")
+      const response = await getChatbotResponse(response_id,"step","")
       setCurrentIndex(nextIndex);
 
       setMessages((prev) => [
@@ -124,7 +121,7 @@ function ChatbotPage({ onBack, session }) {
     setIsLoading(true);
     showTyping();
 
-    const response = await getChatbotResponse(query_id,response_id,"more","")
+    const response = await getChatbotResponse(response_id,"more","")
 
     // Add the model's "more info" response
     setMessages((prev) => [
@@ -207,7 +204,7 @@ function ChatbotPage({ onBack, session }) {
     setIsLoading(true);
     showTyping();
       
-    const response = await getChatbotResponse(query_id,response_id,"free",content);
+    const response = await getChatbotResponse(response_id,"free",content);
 
     setMessages((prev) => [
       ...prev,
@@ -244,6 +241,8 @@ function ChatbotPage({ onBack, session }) {
       const role =
         msg.sender === "user" || msg.role === "user" ? "user" : "bot";
 
+      const id = msg.id
+      
       const content =
         msg.text ??
         msg.content ??
@@ -257,7 +256,7 @@ function ChatbotPage({ onBack, session }) {
         await fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role, content }),
+          body: JSON.stringify({ id, role, content }),
         }).catch(() => {});
     };
 
