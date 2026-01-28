@@ -18,7 +18,7 @@ function ChatbotPage({ onBack, session }) {
 
   // declare session ID early instead of per function
   const sessionId = session?.session_id
-  const totalSteps = 11
+  const totalSteps = 11 // eventually this will be pulled from API instead of hardcoded.
 
   function checkMessage(type) {
     // returns number of messages per step and type (free/more)

@@ -87,7 +87,8 @@ class Chatbot {
 
   constructor(steps) { 
     this.steps = steps
-    this.step_counter = 1 // not a pedometer
+    this.step_counter = 0 // not a pedometer
+    this.current_step = ""
     const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
       ${this.steps.toString()}
       You will be given a PARTICIPANT QUERY, the CURRENT STEP they are following, and ADDITIONAL CONTEXT.
@@ -112,15 +113,14 @@ class Chatbot {
     let prompt = ""
     if (query_type === "step") {
       // handle next step
+      this.current_step = this.steps[this.step_counter]
+      prompt = `Rephrase the following instruction for clarify: ${this.current_step}`
       this.step_counter++
-      current_step = this.steps[this.step_counter]
-      prompt = `Rephrase the following instruction for clarify: ${current_step}`
     } else if (query_type === "info") {
       // handle more info
-      const current_step = this.steps[this.step_counter]
-      let context = await vpipe.getTextMatches(current_step)
+      let context = await vpipe.getTextMatches(this.current_step)
       context.toString()
-      prompt = `Provide more information on this step: ${current_step}
+      prompt = `Provide more information on this step: ${this.current_step}
                 You may use the following context in your response:
                 ${context}`
     } else {
