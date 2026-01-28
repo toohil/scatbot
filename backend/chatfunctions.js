@@ -106,14 +106,24 @@ class Chatbot {
     return this.status;
   }
 
-  async getChatbotResponse(type, text) {
-    const context = await vpipe.getTextMatches(text);
-    const context_str = context.toString();
-    const prompt = `PARTICIPANT QUERY:
-      I am currently following this instruction: ${step}
-      Please help me with the following: ${text}
-      ADDITIONAL CONTEXT:
-      ${context_str}`
+  async getChatbotResponse(query_type, text) {
+    let prompt = ""
+    if (query_type === "step") {
+      // handle next step
+      prompt = ""
+    } else if (query_type === "info") {
+      // handle more info
+      prompt = ""
+    } else {
+      // keep existing behaviour - freetext question.
+      let context = await vpipe.getTextMatches(text);
+      context = context.toString();
+      prompt = `PARTICIPANT QUERY:
+        I am currently following this instruction: ${step}
+        Please help me with the following: ${text}
+        ADDITIONAL CONTEXT:
+        ${context}`
+    }
     const output = await this.cpipe.askChatbot(prompt);
     return output;
   }

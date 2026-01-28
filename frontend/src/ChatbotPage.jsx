@@ -82,15 +82,43 @@ function ChatbotPage({ onBack, session }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [messages, setMessages] = useState(() => [
     {
-      id: `bot-${STEPS[0].id}`,
+      id: `bot-${currentIndex}`,
       sender: "bot",
       text: STEPS[0].text,
       title: STEPS[0].title,
     },
   ]);
 
+  // declare session ID early instead of per function
+  const sessionId = session?.session_id
+
   const currentStep = STEPS[currentIndex];
   const totalSteps = STEPS.length;
+
+  function checkMessage(role, type) {
+    // returns number of messages per step and type (free/more)
+    // allows us to keep message IDs for freetext etc. unique, but incremental by step and message
+    
+    // init matches count
+    let chars = 10
+    // user role adds an extra character to the ID length (vs bot)
+    // could change role identifier entirely to "usr" but that be more intrusive
+    if (role === "user") {  
+      chars++
+
+    }
+    let matches = 0
+    // iterate over messages
+    for (const m of messages) {
+      // get first (chars) places of message ID - will be (role)-(index)-(type)
+      if (m?.id.slice(0,chars) === `${role}-${currentIndex}-${type}`) {
+        // increment match count for each valid result
+        matches++
+      }
+    }
+    // return count. Will be 0 for first message of each unique role/step/type combination, then increment.
+    return matches
+  }
 
   const handleNext = () => {
     // can't skip to next step while chatbot response pending
@@ -101,19 +129,19 @@ function ChatbotPage({ onBack, session }) {
       setMessages((prev) => [
         ...prev,
         {
-          id: `user-${currentStep.id}`,
+          id: `user-${currentIndex}`,
           sender: "user",
           text: "Okay, got it – next step.",
         },
         {
-          id: `bot-${STEPS[nextIndex].id}`,
+          id: `bot-${currentIndex+1}`,
           sender: "bot",
           title: STEPS[nextIndex].title,
           text: STEPS[nextIndex].text,
         },
       ]);
 
-      setCurrentIndex(nextIndex);
+      setCurrentIndex(currentIndex+1);
     }
   };
 
@@ -129,8 +157,6 @@ function ChatbotPage({ onBack, session }) {
   const handleMoreInfo = async () => {
     // stop spam clicks
     if (isLoading) return;
-
-    const sessionId = session?.session_id;
     if (!sessionId) return;
 
     // Find what we’re expanding (last bot message in the chat)
@@ -141,7 +167,7 @@ function ChatbotPage({ onBack, session }) {
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-more-${Date.now()}`,
+        id: `user-${currentIndex}-more-${checkMessage("user","more")}`,
         sender: "user",
         text: "Tell me more",
       },
@@ -171,7 +197,7 @@ function ChatbotPage({ onBack, session }) {
       setMessages((prev) => [
         ...prev,
         {        
-          id: `bot-more-${Date.now()}`,
+          id: `bot-${currentIndex}-more-${checkMessage("bot","more")}`,
           sender: "bot",
           title: `More Info: ${lastBot.title}`,
           text: output.message,
@@ -223,17 +249,17 @@ function ChatbotPage({ onBack, session }) {
   };
 
 
-  const submitQuery = async () => {
+  const handleFreeText = async () => {
     
     //added this to stop spamming
     if (isLoading) return;
+    if (!sessionId) return;
 
     // grab text from input field
     // submit to askChatbot function from worker.js
     const sessionId = session?.session_id;
     console.log(sessionId);
 
-    if (!sessionId) return;
 
     //turning on typing UI
     const textbox = document.getElementById("freeTextInput");
@@ -246,7 +272,7 @@ function ChatbotPage({ onBack, session }) {
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-freetext-query-${currentStep.id}`,
+        id: `user-${currentIndex}-free-${checkMessage("user","free")}`,
         sender: "user",
         text: content,
       },
@@ -273,7 +299,7 @@ function ChatbotPage({ onBack, session }) {
       setMessages((prev) => [
         ...prev,
         {
-          id: `bot-generated-answer-${currentStep.id}`,
+          id: `bot-${currentIndex}-free-${checkMessage("bot","free")}`,
           sender: "bot",
           title: `Q: ${content}`,
           text: `${output["message"]}`,
@@ -348,7 +374,7 @@ function ChatbotPage({ onBack, session }) {
   const handleInputKeyDown = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      submitQuery();
+      handleFreeText();
     }
   };
 
@@ -416,7 +442,7 @@ function ChatbotPage({ onBack, session }) {
 
             />
            <button className="chip" type="button"
-             onClick={submitQuery} 
+             onClick={handleFreeText} 
              disabled={isLoading}>
             {isLoading ? "…" : "Go"}
            </button>
