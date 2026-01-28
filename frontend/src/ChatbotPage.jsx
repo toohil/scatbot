@@ -18,6 +18,7 @@ function ChatbotPage({ onBack, session }) {
 
   // declare session ID early instead of per function
   const sessionId = session?.session_id
+  const totalSteps = 11
 
   function checkMessage(type) {
     // returns number of messages per step and type (free/more)
@@ -70,6 +71,9 @@ function ChatbotPage({ onBack, session }) {
         }
       ]);
 
+      setIsLoading(true);
+      showTyping();
+
       const response = await getChatbotResponse(response_id,"step","")
       setCurrentIndex(nextIndex);
 
@@ -78,10 +82,13 @@ function ChatbotPage({ onBack, session }) {
         {
           id: response_id,
           sender: "bot",
-          title: `Step ${currentIndex}`,
+          title: `Step ${nextIndex}`,
           text: response,
         }
       ]);
+
+      hideTyping();
+      setIsLoading(false);
 
     }
   };

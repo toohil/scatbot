@@ -24,9 +24,9 @@ class ChatLogger {
         message_count INTEGER NOT NULL DEFAULT 0
       );
       CREATE TABLE IF NOT EXISTS messages (
-        message_id INT PRIMARY KEY NOT NULL,
+        message_id INTEGER PRIMARY KEY NOT NULL,
         session_id VARCHAR NOT NULL,
-        order TEXT NOT NULL,
+        chat_id TEXT NOT NULL,
         role TEXT CHECK(role in ('user','bot')) NOT NULL,
         content TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT current_timestamp
@@ -45,7 +45,7 @@ class ChatLogger {
     );
 
     this.add_message = this.db.prepare(`
-      INSERT INTO messages ( session_id, order, role, content )
+      INSERT INTO messages ( session_id, chat_id, role, content )
       VALUES ( ?, ?, ?, ? )
       `
     );
@@ -89,7 +89,7 @@ class Chatbot {
     this.steps = steps
     this.step_counter = 1 // not a pedometer
     const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
-      ${this.steps}
+      ${this.steps.toString()}
       You will be given a PARTICIPANT QUERY, the CURRENT STEP they are following, and ADDITIONAL CONTEXT.
       Address the participant directly in your responses, using the provided context. Keep responses concise, just one sentence.
       If the participant's question is not in any of the context provided, reply that you do not know.`
@@ -108,26 +108,27 @@ class Chatbot {
   }
 
   async getChatbotResponse(query_type, text) {
+    
     let prompt = ""
-    const current_step = this.steps[this.step_counter]
-    let step_context = await vpipe.getTextMatches(current_step)
-    step_context = step_context.toString()
     if (query_type === "step") {
       // handle next step
+      this.step_counter++
+      current_step = this.steps[this.step_counter]
       prompt = `Rephrase the following instruction for clarify: ${current_step}`
     } else if (query_type === "info") {
       // handle more info
+      const current_step = this.steps[this.step_counter]
+      let context = await vpipe.getTextMatches(current_step)
+      context.toString()
       prompt = `Provide more information on this step: ${current_step}
                 You may use the following context in your response:
-                ${step_context}`
+                ${context}`
     } else {
       // keep existing behaviour - freetext question.
       let context = await vpipe.getTextMatches(text);
       context = context.toString();
-      prompt = `PARTICIPANT QUERY:
-        Answer the following question: ${text}
+      prompt = `Answer the following question: ${text}
         You may use the following context in your response:
-        ${step_context}
         ${context}`
     }
     const output = await this.cpipe.askChatbot(prompt);

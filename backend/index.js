@@ -12,6 +12,20 @@ import { Chatbot, ChatLogger } from "./chatfunctions.js";
 //   return v;
 // }
 
+const steps = [
+"The night before sample gathering, place the freezer block in the freezer overnight to freeze.",
+"To begin the procedure, place the frozen freezer block in one of the ziplock bags.",
+"Put on the disposable gloves.",
+"Place the plastic container onto the toilet bowl and perform bowel movement into this (the whole bowel motion, not just part of it). Please avoid getting any urine in the plastic container and do not wrap or cover the sample in toilet paper.",
+"Tear off the top of the AnaeroGen sachet which is taped to the lid of the container (see image below). Do not remove the inner sachet.",
+"Within one minute of tearing the top of the sachet, secure the lid of the container firmly, and place the plastic container in second zip lock bag (i.e. the empty bag).",
+"Remove and dispose of gloves.",
+"Seal the zip lock bag, place the ziplock bag with the stool sample into the ziplock bag containing the frozen freezer block, and seal.",
+"Place the ziplock bag (containing the freezer block, and containing the ziplock bag with the stool sample) in the paper envelope and seal.",
+"Write down the date and the time of the stool sample on the envelope.",
+"Place the sample in the fridge until you leave for the research lab session"
+]
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -36,7 +50,7 @@ app.post("/api/session", async (_req, res) => {
     const sessionId = crypto.randomUUID();
     await db.addUser(sessionId)
     console.log("User created with ID:", sessionId)
-    cdb[sessionId] = new Chatbot()
+    cdb[sessionId] = new Chatbot(steps)
     await cdb[sessionId].initChatbot()
     console.log("Chatbot created for session:", sessionId)
     const output = await db.getUser(sessionId)
