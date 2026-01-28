@@ -51,8 +51,8 @@ app.post("/api/session", async (_req, res) => {
 app.post("/api/session/:sessionId/chat", async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { step, role, content } = req.body;
-    const response = await cdb[sessionId].getChatbotResponse(step, content);
+    const { type, content } = req.body;
+    const response = await cdb[sessionId].getChatbotResponse(type, content);
     db.addMessage( sessionId, "bot", response)
     res.json({ message: response })
   } catch (err) {

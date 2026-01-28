@@ -118,220 +118,219 @@ function ChatbotPage({ onBack, session }) {
   };
 
   // Get the most recent non-typing bot message so "More info" expands the right thing
-const getLastBotMessage = () => {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i];
-    if (m?.sender === "bot" && !m.isTyping) return m;
-  }
-  return null;
-};
+  const getLastBotMessage = () => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m?.sender === "bot" && !m.isTyping) return m;
+    }
+    return null;
+  };
 
-const handleMoreInfo = async () => {
-  // stop spam clicks
-  if (isLoading) return;
+  const handleMoreInfo = async () => {
+    // stop spam clicks
+    if (isLoading) return;
 
-  const sessionId = session?.session_id;
-  if (!sessionId) return;
+    const sessionId = session?.session_id;
+    if (!sessionId) return;
 
-  // Find what we’re expanding (last bot message in the chat)
-  const lastBot = getLastBotMessage();
-  if (!lastBot) return;
+    // Find what we’re expanding (last bot message in the chat)
+    const lastBot = getLastBotMessage();
+    if (!lastBot) return;
 
-  // Show the user’s request in chat immediately
-  setMessages((prev) => [
-    ...prev,
-    {
-      id: `user-more-${Date.now()}`,
-      sender: "user",
-      text: "Tell me more",
-    },
-  ]);
-
-  setIsLoading(true);
-  showTyping();
-
-  try {
-    const role = "user";
-    // IMPORTANT: include the last bot message so the LM knows what to expand on
-    const content = `Tell me something new, related to the current step.`;
-    const step = lastBot.text
-
-    const response = await fetch(
-      `http://localhost:5174/api/session/${sessionId}/chat`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step, role, content }),
-      }
-    );
-
-    const output = await response.json();
-
-    // Add the model's "more info" response
-    setMessages((prev) => [
-      ...prev,
-      {        
-        id: `bot-more-${Date.now()}`,
-        sender: "bot",
-        title: `More Info: ${lastBot.title}`,
-        text: output.message,
-      },
-    ]);
-  } catch (e) {
-    // keep your existing error behaviour style
+      // Show the user’s request in chat immediately
     setMessages((prev) => [
       ...prev,
       {
-        id: `bot-error-${Date.now()}`,
-        sender: "bot",
-        text: "Sorry — something went wrong. Please try again.",
+        id: `user-more-${Date.now()}`,
+        sender: "user",
+        text: "Tell me more",
       },
     ]);
-  } finally {
-    hideTyping();
-    setIsLoading(false);
-  }
-};
 
-// Added loading state + typing message id ref
-const [isLoading, setIsLoading] = useState(false);
-const typingIdRef = useRef(null);
+    setIsLoading(true);
+    showTyping();
 
-// func to  show typing message
-const showTyping = () => {
-  const typingId = `bot-typing-${Date.now()}`;
-  typingIdRef.current = typingId;
+    try {
+      const role = "user";
+      // IMPORTANT: include the last bot message so the LM knows what to expand on
+      const content = `Tell me something new, related to the current step.`;
+      const step = lastBot.text
 
-  setMessages((prev) => [
-    ...prev,
-    {
-      id: typingId,
-      sender: "bot",
-      text: "TYPING_INDICATOR", // Special marker for animated dots
-      isTyping: true,
-    },
-  ]);
-};
+      const response = await fetch(
+        `http://localhost:5174/api/session/${sessionId}/chat`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ step, role, content }),
+        }
+      );
 
-// func to remove typing message
-const hideTyping = () => {
-  const typingId = typingIdRef.current;
-  if (!typingId) return;
+      const output = await response.json();
 
-  setMessages((prev) => prev.filter((m) => m.id !== typingId));
-  typingIdRef.current = null;
-};
+      // Add the model's "more info" response
+      setMessages((prev) => [
+        ...prev,
+        {        
+          id: `bot-more-${Date.now()}`,
+          sender: "bot",
+          title: `More Info: ${lastBot.title}`,
+          text: output.message,
+        },
+      ]);
+    } catch (e) {
+      // keep your existing error behaviour style
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bot-error-${Date.now()}`,
+          sender: "bot",
+          text: "Sorry — something went wrong. Please try again.",
+        },
+      ]);
+    } finally {
+      hideTyping();
+      setIsLoading(false);
+    }
+  };
 
+  // Added loading state + typing message id ref
+  const [isLoading, setIsLoading] = useState(false);
+  const typingIdRef = useRef(null);
 
-const submitQuery = async () => {
-  
-  //added this to stop spamming
-  if (isLoading) return;
+  // func to  show typing message
+  const showTyping = () => {
+    const typingId = `bot-typing-${Date.now()}`;
+    typingIdRef.current = typingId;
 
-  // grab text from input field
-  // submit to askChatbot function from worker.js
-  const sessionId = session?.session_id;
-  console.log(sessionId);
-
-  if (!sessionId) return;
-
-  //turning on typing UI
-  const role = "user";
-  const textbox = document.getElementById("freeTextInput");
-  const content = textbox.value;
-  const step = currentStep.text;
-  // added this heree to clear input field automatically
-  textbox.value = "";
-
-  // render query before sending 
-  setMessages((prev) => [
-    ...prev,
-    {
-      id: `user-freetext-query-${currentStep.id}`,
-      sender: "user",
-      text: content,
-    },
-  ]);
-
-  setIsLoading(true);
-  showTyping();
-
-  // added try/finally causen without them any error was leaving the Go button disabled .
-  try {
-
-    const response = await fetch(
-      `http://localhost:5174/api/session/${sessionId}/chat`,
+    setMessages((prev) => [
+      ...prev,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step, role, content }),
-      }
-    ).catch(() => {});
+        id: typingId,
+        sender: "bot",
+        text: "TYPING_INDICATOR", // Special marker for animated dots
+        isTyping: true,
+      },
+    ]);
+  };
 
+  // func to remove typing message
+  const hideTyping = () => {
+    const typingId = typingIdRef.current;
+    if (!typingId) return;
+
+    setMessages((prev) => prev.filter((m) => m.id !== typingId));
+    typingIdRef.current = null;
+  };
+
+
+  const submitQuery = async () => {
     
-    const output = await response.json();
+    //added this to stop spamming
+    if (isLoading) return;
 
+    // grab text from input field
+    // submit to askChatbot function from worker.js
+    const sessionId = session?.session_id;
+    console.log(sessionId);
+
+    if (!sessionId) return;
+
+    //turning on typing UI
+    const textbox = document.getElementById("freeTextInput");
+    const content = textbox.value;
+    const step = currentStep.text;
+    // added this heree to clear input field automatically
+    textbox.value = "";
+
+    // render query before sending 
     setMessages((prev) => [
       ...prev,
       {
-        id: `bot-generated-answer-${currentStep.id}`,
-        sender: "bot",
-        title: `Q: ${content}`,
-        text: `${output["message"]}`,
+        id: `user-freetext-query-${currentStep.id}`,
+        sender: "user",
+        text: content,
       },
     ]);
-  } catch (e) {
-    //  show a  bot error message instead of silently breaking.
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `bot-error-${Date.now()}`,
-        sender: "bot",
-        text: "Sorry — something went wrong. Please try again.",
-      },
-    ]);
-  } finally {
-    // Always remove the typing bubble and re-enable the Go button.
-    // This runs whether the request succeeds or fails.
-    hideTyping();
-    setIsLoading(false);
-  }
-};
 
-const atEnd = currentIndex === totalSteps - 1;
-const lastSavedIndexRef = useRef(0);
+    setIsLoading(true);
+    showTyping();
 
-const bottomRef = useRef(null);
+    // added try/finally causen without them any error was leaving the Go button disabled .
+    try {
 
-useEffect(() => {
-  // You must have the session id available (passed from App)
-  const sessionId = session?.session_id;
-  if (!sessionId) return;
+      const response = await fetch(
+        `http://localhost:5174/api/session/${sessionId}/chat`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ step, content }),
+        }
+      ).catch(() => {});
 
-  // Only send messages that were added since last time
-  const newMessages = messages.slice(lastSavedIndexRef.current);
-  if (newMessages.length === 0) return;
+      
+      const output = await response.json();
 
-  const sendOne = async (msg) => {
-    
-    const role =
-      msg.sender === "user" || msg.role === "user" ? "user" : "bot";
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bot-generated-answer-${currentStep.id}`,
+          sender: "bot",
+          title: `Q: ${content}`,
+          text: `${output["message"]}`,
+        },
+      ]);
+    } catch (e) {
+      //  show a  bot error message instead of silently breaking.
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `bot-error-${Date.now()}`,
+          sender: "bot",
+          text: "Sorry — something went wrong. Please try again.",
+        },
+      ]);
+    } finally {
+      // Always remove the typing bubble and re-enable the Go button.
+      // This runs whether the request succeeds or fails.
+      hideTyping();
+      setIsLoading(false);
+    }
+  };
 
-    const content =
-      msg.text ??
-      msg.content ??
-      msg.message ??
-      (typeof msg === "string" ? msg : JSON.stringify(msg));
-    
-    // typing indicators were showing up in db
-    if (msg.isTyping) return;
+  const atEnd = currentIndex === totalSteps - 1;
+  const lastSavedIndexRef = useRef(0);
 
-    // don’t block the UI
-    await fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, content }),
-    }).catch(() => {});
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    // You must have the session id available (passed from App)
+    const sessionId = session?.session_id;
+    if (!sessionId) return;
+
+    // Only send messages that were added since last time
+    const newMessages = messages.slice(lastSavedIndexRef.current);
+    if (newMessages.length === 0) return;
+
+    const sendOne = async (msg) => {
+      
+      const role =
+        msg.sender === "user" || msg.role === "user" ? "user" : "bot";
+
+      const content =
+        msg.text ??
+        msg.content ??
+        msg.message ??
+        (typeof msg === "string" ? msg : JSON.stringify(msg));
+      
+        // typing indicators were showing up in db
+        if (msg.isTyping) return;
+
+        // don’t block the UI
+        await fetch(`http://localhost:5174/api/session/${sessionId}/logger`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, content }),
+        }).catch(() => {});
     };
 
     // Send all new messages
@@ -341,17 +340,17 @@ useEffect(() => {
     lastSavedIndexRef.current = messages.length;
   }, [messages, session]);
 
-useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  useEffect(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-//added this to handle enter key press in input field
-const handleInputKeyDown = (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    submitQuery();
-  }
-};
+  //added this to handle enter key press in input field
+  const handleInputKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitQuery();
+    }
+  };
 
   return (
     <div className="chat-page">
