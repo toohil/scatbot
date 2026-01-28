@@ -114,9 +114,9 @@ class Chatbot {
     if (query_type === "step") {
       // handle next step
       this.current_step = this.steps[this.step_counter]
-      prompt = `Rephrase the following instruction for clarify: ${this.current_step}`
+      prompt = `Rephrase this next instruction for clarity: ${this.current_step}`
       this.step_counter++
-    } else if (query_type === "info") {
+    } else if (query_type === "more") {
       // handle more info
       let context = await vpipe.getTextMatches(this.current_step)
       context.toString()
