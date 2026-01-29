@@ -36,14 +36,14 @@ function ChatbotPage({ onBack, session }) {
     return matches
   }
 
-  async function getChatbotResponse(qid, rid, type, content) {
+  async function getChatbotResponse(qid, rid, content) {
     try {
       const response = await fetch(
         `http://localhost:5174/api/session/${sessionId}/chat`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ qid, rid, type, content }),
+          body: JSON.stringify({ qid, rid, content }),
         }
       );
       const output = await response.json()
@@ -75,7 +75,7 @@ function ChatbotPage({ onBack, session }) {
       setIsLoading(true);
       showTyping();
 
-      const response = await getChatbotResponse(query_id, response_id,"step","")
+      const response = await getChatbotResponse(query_id, response_id,"NEXT STEP")
       setCurrentIndex(nextIndex);
 
       setMessages((prev) => [
@@ -129,7 +129,7 @@ function ChatbotPage({ onBack, session }) {
     setIsLoading(true);
     showTyping();
 
-    const response = await getChatbotResponse(query_id, response_id,"more","")
+    const response = await getChatbotResponse(query_id, response_id, "MORE INFO")
 
     // Add the model's "more info" response
     setMessages((prev) => [
@@ -206,7 +206,7 @@ function ChatbotPage({ onBack, session }) {
     setIsLoading(true);
     showTyping();
       
-    const response = await getChatbotResponse(query_id, response_id,"free",content);
+    const response = await getChatbotResponse(query_id, response_id, content);
 
     setMessages((prev) => [
       ...prev,

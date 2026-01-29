@@ -66,9 +66,6 @@ class ChatLogger {
   }
 
   async addMessage(uuid, id, role, content) {
-    // console.log(uuid)
-    // console.log(typeof(role))
-    // console.log(content)
     this.add_message.run(uuid, id, role, content)
   }
 
@@ -111,12 +108,12 @@ class Chatbot {
   async getChatbotResponse(query_type, text) {
     
     let prompt = ""
-    if (query_type === "step") {
+    if (text === "NEXT STEP") {
       // handle next step
       this.current_step = this.steps[this.step_counter]
       prompt = `Rephrase this next instruction for clarity: ${this.current_step}`
       this.step_counter++
-    } else if (query_type === "more") {
+    } else if (text === "MORE INFO") {
       // handle more info
       let context = await vpipe.getTextMatches(this.current_step)
       context.toString()

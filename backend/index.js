@@ -65,9 +65,9 @@ app.post("/api/session", async (_req, res) => {
 app.post("/api/session/:sessionId/chat", async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { qid, rid, type, content } = req.body;
+    const { qid, rid, content } = req.body;
     db.addMessage(sessionId, qid, "user", content)
-    const response = await cdb[sessionId].getChatbotResponse(type, content);
+    const response = await cdb[sessionId].getChatbotResponse(content);
     db.addMessage(sessionId, rid, "bot", response) // need to implement ID handling too! TODO
     res.json({ message: response })
   } catch (err) {
