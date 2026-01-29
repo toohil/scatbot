@@ -88,9 +88,7 @@ class Chatbot {
     this.current_step = ""
     const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
       ${this.steps.toString()}
-      You will be given a PARTICIPANT QUERY, the CURRENT STEP they are following, and ADDITIONAL CONTEXT.
-      Address the participant directly in your responses, using the provided context. Keep responses concise, just one sentence.
-      If the participant's question is not in any of the context provided, reply that you do not know.`
+      Address the participant directly in your responses. Keep your responses concise and avoid repeating phrases.`
 
     this.cpipe = new ChatbotPipeline(system_prompt);
     this.status = false;
@@ -105,28 +103,31 @@ class Chatbot {
     return this.status;
   }
 
-  async getChatbotResponse(query_type, text) {
+  async getChatbotResponse(text) {
     
     let prompt = ""
     if (text === "NEXT STEP") {
       // handle next step
       this.current_step = this.steps[this.step_counter]
-      prompt = `Rephrase this next instruction for clarity: ${this.current_step}`
       this.step_counter++
+      prompt = `${this.current_step}
+                Rephrase this text in accessible language and ask the user if they want to continue or get more information on this step.`
     } else if (text === "MORE INFO") {
       // handle more info
       let context = await vpipe.getTextMatches(this.current_step)
       context.toString()
-      prompt = `Provide more information on this step: ${this.current_step}
-                You may use the following context in your response:
-                ${context}`
+      prompt = `${this.current_step}
+                Expand this instruction using only this additional information:
+                ${context}
+                If there is no relevant additional information, only say that you do not have more information for this step.`
     } else {
       // keep existing behaviour - freetext question.
       let context = await vpipe.getTextMatches(text);
       context = context.toString();
-      prompt = `Answer the following question: ${text}
-        You may use the following context in your response:
-        ${context}`
+      prompt = `${text}
+                Rephrase the question and provide an answer using only this additional information:
+                ${context}
+                If there is no relevant additional information, only say that that you do not know the answer.`
     }
     const output = await this.cpipe.askChatbot(prompt);
     return output;

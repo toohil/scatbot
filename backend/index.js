@@ -76,17 +76,18 @@ app.post("/api/session/:sessionId/chat", async (req, res) => {
   }
 });
 
-app.post("/api/session/:sessionId/logger", async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const { id, role, content } = req.body;
+// Testing logging at /api/session/.../chat endpoint
+// app.post("/api/session/:sessionId/logger", async (req, res) => {
+//   try {
+//     const { sessionId } = req.params;
+//     const { id, role, content } = req.body;
 
-    db.addMessage(sessionId, id, role, content)
-    res.json({ status: "ok" })
-  } catch (err) {
+//     db.addMessage(sessionId, id, role, content)
+//     res.json({ status: "ok" })
+//   } catch (err) {
 
-  }
-});
+//   }
+// });
 
 // GET MESSAGES
 app.get("/api/session/:sessionId/messages", async (req, res) => {
@@ -96,7 +97,7 @@ app.get("/api/session/:sessionId/messages", async (req, res) => {
     db.getMessages(sessionId)
 
   } catch (err) {
-    console.error(err);
+    console.log(err);
     res.status(500).json({ error: "Failed to fetch messages" });
   }
 });
@@ -111,7 +112,7 @@ app.post("/api/session/:sessionId/kill-session", async (req, res) => {
     delete cdb[sessionId]
 
   } catch (err) {
-    console.error(err);
+    console.log("Error occurred - session may not exist.");
     res.status(500).json({ error: "Failed to end session" });
   }
 });
