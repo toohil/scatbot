@@ -26,6 +26,7 @@ class ChatLogger {
       CREATE TABLE IF NOT EXISTS messages (
         message_id INTEGER PRIMARY KEY NOT NULL,
         session_id VARCHAR NOT NULL,
+        chat_id TEXT NOT NULL,
         role TEXT CHECK(role in ('user','bot')) NOT NULL,
         content TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT current_timestamp
@@ -44,8 +45,8 @@ class ChatLogger {
     );
 
     this.add_message = this.db.prepare(`
-      INSERT INTO messages ( session_id, role, content )
-      VALUES ( ?, ?, ? )
+      INSERT INTO messages ( session_id, chat_id, role, content )
+      VALUES ( ?, ?, ?, ? )
       `
     );
 
@@ -64,11 +65,8 @@ class ChatLogger {
     return user[0]
   }
 
-  async addMessage(uuid, role, content) {
-    // console.log(uuid)
-    // console.log(typeof(role))
-    // console.log(content)
-    this.add_message.run(uuid, role, content)
+  async addMessage(uuid, id, role, content) {
+    this.add_message.run(uuid, id, role, content)
   }
 
   async getMessages(uuid) {
@@ -84,24 +82,13 @@ await vpipe.loadModel()
 
 class Chatbot {
 
-  constructor() { 
-    const steps = `- The night before sample gathering, place the freezer block in the freezer overnight to freeze. 
-      - Place the frozen freezer block in one of the ziplock bags.
-      - Put on the disposable gloves.
-      - Place the plastic container onto the toilet bowl and perform bowel movement into this (the whole bowel motion, not just part of it). Please avoid getting any urine in the plastic container and do not wrap or cover the sample in toilet paper.
-      - Tear off the top of the AnaeroGen sachet which is taped to the lid of the container (see image below). Do not remove the inner sachet.
-      - Within one minute of tearing the top of the sachet, secure the lid of the container firmly, and place the plastic container in second zip lock bag (i.e. the empty bag).
-      - Remove and dispose of gloves.
-      - Seal the zip lock bag, place the ziplock bag with the stool sample into the ziplock bag containing the frozen freezer block, and seal.
-      - Place the ziplock bag (containing the freezer block, and containing the ziplock bag with the stool sample) in the paper envelope and seal.
-      - Write down the date and the time of the stool sample on the envelope. 
-      - Place the sample in the fridge until you leave for the research lab session`
-
+  constructor(steps) { 
+    this.steps = steps
+    this.step_counter = 0 // not a pedometer
+    this.current_step = ""
     const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
-      ${steps}
-      You will be given a PARTICIPANT QUERY, the CURRENT STEP they are following, and ADDITIONAL CONTEXT.
-      Address the participant directly in your responses, using the provided context. Keep responses concise, just one sentence.
-      If the participant's question is not in any of the context provided, reply that you do not know.`
+      ${this.steps.toString()}
+      Address the participant directly in your responses. Keep your responses concise and avoid repeating phrases.`
 
     this.cpipe = new ChatbotPipeline(system_prompt);
     this.status = false;
@@ -116,14 +103,32 @@ class Chatbot {
     return this.status;
   }
 
-  async getChatbotResponse(step, text) {
-    const context = await vpipe.getTextMatches(text);
-    const context_str = context.toString();
-    const prompt = `PARTICIPANT QUERY:
-      I am currently following this instruction: ${step}
-      Please help me with the following: ${text}
-      ADDITIONAL CONTEXT:
-      ${context_str}`
+  async getChatbotResponse(text) {
+    
+    let prompt = ""
+    if (text === "NEXT STEP") {
+      // handle next step
+      this.current_step = this.steps[this.step_counter]
+      this.step_counter++
+      prompt = `${this.current_step}
+                Rephrase this text in accessible language and ask the user if they want to continue or get more information on this step.`
+    } else if (text === "MORE INFO") {
+      // handle more info
+      let context = await vpipe.getTextMatches(this.current_step)
+      context.toString()
+      prompt = `${this.current_step}
+                Expand this instruction using only this additional information:
+                ${context}
+                If there is no relevant additional information, only say that you do not have more information for this step.`
+    } else {
+      // keep existing behaviour - freetext question.
+      let context = await vpipe.getTextMatches(text);
+      context = context.toString();
+      prompt = `${text}
+                Rephrase the question and provide an answer using only this additional information:
+                ${context}
+                If there is no relevant additional information, only say that that you do not know the answer.`
+    }
     const output = await this.cpipe.askChatbot(prompt);
     return output;
   }
