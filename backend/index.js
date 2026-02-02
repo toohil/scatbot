@@ -13,8 +13,9 @@ import { Chatbot, ChatLogger } from "./chatfunctions.js";
 // }
 
 const steps = [
+"Check that your sample pack contains: a plastic lunch-box size container with a lid, disposable gloves, 2 zip lock bags, an AnaeroGen sachet, a paper envelope, and a freezer block.",
 "The night before sample gathering, place the freezer block in the freezer overnight to freeze.",
-"To begin the procedure, place the frozen freezer block in one of the ziplock bags.",
+"To begin the sample gathering procedure, place the frozen freezer block in one of the ziplock bags.",
 "Put on the disposable gloves.",
 "Place the plastic container onto the toilet bowl and perform bowel movement into this (the whole bowel motion, not just part of it). Please avoid getting any urine in the plastic container and do not wrap or cover the sample in toilet paper.",
 "Tear off the top of the AnaeroGen sachet which is taped to the lid of the container (see image below). Do not remove the inner sachet.",

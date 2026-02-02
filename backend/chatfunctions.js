@@ -110,25 +110,27 @@ class Chatbot {
       // handle next step
       this.current_step = this.steps[this.step_counter]
       this.step_counter++
-      prompt = `${this.current_step}
-                Rephrase this text in accessible language and ask the user if they want to continue or get more information on this step.`
+      prompt = `Step ${this.step_counter}: ${this.current_step}
+                Rephrase this step into friendly, accessible language. Then, ask the user if they want to go to the next step or get more information.`
     } else if (text === "MORE INFO") {
       // handle more info
       let context = await vpipe.getTextMatches(this.current_step)
-      context.toString()
-      prompt = `Expand on the last instruction using only the additional context to follow. Do not repeat the original instruction in your reply.
-                If there is no relevant context, reply "There is no more information for this step."
-                Additional context: ${context}`
+      console.log("Retrieved context:", context)
+      context = context.toString()
+      prompt = `Try to expand this step using only the additional context below. Do not repeat the step itself. If there is no new context, reply "There is no additional information available."
+                Context: ${context}`
     } else {
       // keep existing behaviour - freetext question.
       let context = await vpipe.getTextMatches(text);
+      console.log("Retrieved context:", context)
       context = context.toString();
       prompt = `${text}
-                Answer this question using only the additional context. Do not repeat the question in your reply.
-                If there is no relevant context, reply "I do not have the answer to this question, please consult with the study team."
-                Additional context: ${context}`
+                Try to answer this question using the additional context below. If the context does not contain the answer, reply "I don't have the answer to this question."
+                Context: ${context}`
     }
+    console.log("Trying prompt:", prompt)
     const output = await this.cpipe.askChatbot(prompt);
+    console.log("Received output:", output)
     return output;
   }
 
