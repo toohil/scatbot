@@ -1,5 +1,5 @@
 // src/LandingPage.jsx
-function LandingPage({ onStart }) {
+function LandingPage({ onStart, starting }) {
   return (
     <div className="page-container">
       {/* Top bar with fake admin login */}
@@ -43,8 +43,8 @@ function LandingPage({ onStart }) {
                 advice.
               </li>
               <li>
-                No personal or identifying information is stored in this
-                prototype.
+                Any materials or information associated with your participation are not
+linked to your name or direct identifying details.No personal or identifying information is stored in the prototype
               </li>
               <li>
                 Taking part is voluntary and you can stop using the chatbot at
@@ -53,8 +53,24 @@ function LandingPage({ onStart }) {
             </ul>
           </div>
 
-          <button className="primary-button" type="button" onClick={onStart}>
-            Begin
+          <button
+            className={`primary-button${starting ? " loading" : ""}`}
+            type="button"
+            onClick={onStart}
+            disabled={starting}
+          >
+            {starting ? (
+              <span className="loading-label">
+                Loading
+                <span className="loading-dots" aria-hidden="true">
+                  <span>.</span>
+                  <span>.</span>
+                  <span>.</span>
+                </span>
+              </span>
+            ) : (
+              "Begin"
+            )}
           </button>
         </section>
 
