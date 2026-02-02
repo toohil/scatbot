@@ -116,18 +116,17 @@ class Chatbot {
       // handle more info
       let context = await vpipe.getTextMatches(this.current_step)
       context.toString()
-      prompt = `${this.current_step}
-                Expand this instruction using only this additional information:
-                ${context}
-                If there is no relevant additional information, only say that you do not have more information for this step.`
+      prompt = `Expand on the last instruction using only the additional context to follow. Do not repeat the original instruction in your reply.
+                If there is no relevant context, reply "There is no more information for this step."
+                Additional context: ${context}`
     } else {
       // keep existing behaviour - freetext question.
       let context = await vpipe.getTextMatches(text);
       context = context.toString();
       prompt = `${text}
-                Rephrase the question and provide an answer using only this additional information:
-                ${context}
-                If there is no relevant additional information, only say that that you do not know the answer.`
+                Answer this question using only the additional context. Do not repeat the question in your reply.
+                If there is no relevant context, reply "I do not have the answer to this question, please consult with the study team."
+                Additional context: ${context}`
     }
     const output = await this.cpipe.askChatbot(prompt);
     return output;
