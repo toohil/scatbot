@@ -30,4 +30,4 @@ backend/.env
 
 # avoid storing datafiles
 backend/study_docs
-backend/db/*
+backend/db/chat_messages.db
