@@ -88,7 +88,7 @@ class Chatbot {
     this.current_step = ""
     const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
       ${this.steps.toString()}
-      Address the participant directly in your responses. Keep your responses concise and avoid repeating phrases.`
+      Address the participant directly in your responses. Keep your responses concise. Do not repeat phrases from previous responses.`
 
     this.cpipe = new ChatbotPipeline(system_prompt);
     this.status = false;
@@ -116,18 +116,18 @@ class Chatbot {
       // handle more info
       let context = await vpipe.getTextMatches(this.current_step)
       context.toString()
-      prompt = `${this.current_step}
-                Expand this instruction using only this additional information:
+      prompt = `Instruction: ${this.current_step}
+                Expand the instruction using only this additional information:
                 ${context}
-                If there is no relevant additional information, only say that you do not have more information for this step.`
+                Do not repeat the instruction. If there is no relevant additional information, say that you do not have more information for this step.`
     } else {
       // keep existing behaviour - freetext question.
       let context = await vpipe.getTextMatches(text);
       context = context.toString();
-      prompt = `${text}
-                Rephrase the question and provide an answer using only this additional information:
+      prompt = `Question: ${text}
+                Provide an answer to the question using only this additional information:
                 ${context}
-                If there is no relevant additional information, only say that that you do not know the answer.`
+                If there is no relevant additional information, say that that you do not know the answer.`
     }
     const output = await this.cpipe.askChatbot(prompt);
     return output;
