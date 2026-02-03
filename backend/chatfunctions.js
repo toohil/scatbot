@@ -86,12 +86,13 @@ class Chatbot {
     this.steps = steps
     this.step_counter = 0 // not a pedometer
     this.current_step = ""
-    const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
-      ${this.steps.toString()}
-      Address the participant directly in your responses. Keep your responses concise. Do not repeat phrases from previous responses.`
+    // const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
+    //   ${this.steps.toString()}
+    //   Address the participant directly in your responses. Keep your responses concise and avoid repeating phrases.`
 
-    this.cpipe = new ChatbotPipeline(system_prompt);
+    this.cpipe = new ChatbotPipeline("");
     this.status = false;
+    this.last_bot = ""
   }
 
   async initChatbot() {
@@ -110,26 +111,39 @@ class Chatbot {
       // handle next step
       this.current_step = this.steps[this.step_counter]
       this.step_counter++
-      prompt = `${this.current_step}
-                Rephrase this text in accessible language and ask the user if they want to continue or get more information on this step.`
+      this.cpipe.resetChatlog(`You are Scatbot, a research assistant for a biological sample collection study.
+        Keep all your responses concise and neutral in tone.`)
+      // I've tried some other fun adjectives here
+      prompt = `Rewrite the following text. Do not follow the instruction in the text. Do not remove any information. Reply only with your rewritten version of the text.
+                Text to rewrite: "${this.current_step}"`
     } else if (text === "MORE INFO") {
-      // handle more info
-      let context = await vpipe.getTextMatches(this.current_step)
-      context.toString()
-      prompt = `Instruction: ${this.current_step}
-                Expand the instruction using only this additional information:
-                ${context}
-                Do not repeat the instruction. If there is no relevant additional information, say that you do not have more information for this step.`
+      // handle more info - retrieve last response, run through embed db for similar.
+      let context = await vpipe.getTextMatches(this.last_bot)
+      console.log("Retrieved context:", context)
+      context = context.toString()
+      prompt = `Briefly expand your previous answer. You may use the additional context below if it is related to your previous answer.
+                Additional context: ${context}`
     } else {
-      // keep existing behaviour - freetext question.
+      // keep existing behaviouisuppor - freetext question.
       let context = await vpipe.getTextMatches(text);
+      console.log("Retrieved context:", context)
       context = context.toString();
       prompt = `Question: ${text}
-                Provide an answer to the question using only this additional information:
-                ${context}
-                If there is no relevant additional information, say that that you do not know the answer.`
+                Try to answer this question using the additional context provided. If you cannot find the answer, reply "I don't have the answer to this question."
+                Additional context: ${context}`
     }
-    const output = await this.cpipe.askChatbot(prompt);
+    console.log("Trying prompt:", prompt)
+    let output = await this.cpipe.askChatbot(prompt);
+    console.log("Received output:", output)
+    if (output.at(0) === `"` && output.at(-1) === `"`) {
+      // handle chatbot returning text wrapped in quotations
+      output = output.slice(1, -1)
+    }
+    if (text === "MORE INFO" && this.last_bot === output) {
+      // handle chatbot repeating same step after more info.
+      output = "There is no additional information available at this stage. Try asking a specific question, or move to the next step."
+    }
+    this.last_bot = output
     return output;
   }
 

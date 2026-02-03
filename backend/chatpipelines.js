@@ -128,7 +128,7 @@ class VectorPipeline extends GenericPipeline {
     const results = []
     for (const v of this.index["vectors"]) {
       let result = cos_sim(vector, v["vector"])
-      if (result > 0.9) {
+      if (result > 0.75) {
         results.push({
           "text": v["text"],
           "score": result  
@@ -170,13 +170,23 @@ class ChatbotPipeline extends GenericPipeline {
    */
   constructor(system_prompt) {
     const task = 'text-generation';
-    const model = 'HuggingFaceTB/SmolLM2-1.7B-Instruct';
+    const model = 'HuggingFaceTB/SmolLM2-360M-Instruct';
     super(task, model)
     
     this.chatlog = [{
       role: "system", content: (system_prompt)
       }]
   };
+
+  resetChatlog(system_prompt) {
+    this.chatlog = [{
+      role: "system", content: system_prompt
+    }]
+  };
+
+  getChatlog() {
+    return this.chatlog
+  }
 
   /**
    * Query active chatbot pipeline for generated response.
