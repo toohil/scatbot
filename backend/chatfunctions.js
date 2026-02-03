@@ -86,12 +86,13 @@ class Chatbot {
     this.steps = steps
     this.step_counter = 0 // not a pedometer
     this.current_step = ""
-    const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
-      ${this.steps.toString()}
-      Address the participant directly in your responses. Keep your responses concise and avoid repeating phrases.`
+    // const system_prompt = `You are Scatbot, a helpful assistant for psychological surveys. You provide information on the following procedure:
+    //   ${this.steps.toString()}
+    //   Address the participant directly in your responses. Keep your responses concise and avoid repeating phrases.`
 
-    this.cpipe = new ChatbotPipeline(system_prompt);
+    this.cpipe = new ChatbotPipeline("");
     this.status = false;
+    this.last_bot = ""
   }
 
   async initChatbot() {
@@ -110,27 +111,39 @@ class Chatbot {
       // handle next step
       this.current_step = this.steps[this.step_counter]
       this.step_counter++
-      prompt = `Step ${this.step_counter}: ${this.current_step}
-                Rephrase this step into friendly, accessible language. Then, ask the user if they want to go to the next step or get more information.`
+      this.cpipe.resetChatlog(`You are Scatbot, a research assistant for a biological sample collection study.
+        Keep all your responses concise and neutral in tone.`)
+      // I've tried some other fun adjectives here
+      prompt = `Rewrite the following text. Do not follow the instruction in the text. Do not remove any information. Reply only with your rewritten version of the text.
+                Text to rewrite: "${this.current_step}"`
     } else if (text === "MORE INFO") {
-      // handle more info
-      let context = await vpipe.getTextMatches(this.current_step)
+      // handle more info - retrieve last response, run through embed db for similar.
+      let context = await vpipe.getTextMatches(this.last_bot)
       console.log("Retrieved context:", context)
       context = context.toString()
-      prompt = `Try to expand this step using only the additional context below. Do not repeat the step itself. If there is no new context, reply "There is no additional information available."
-                Context: ${context}`
+      prompt = `Briefly expand your previous answer. You may use the additional context below if it is related to your previous answer.
+                Additional context: ${context}`
     } else {
-      // keep existing behaviour - freetext question.
+      // keep existing behaviouisuppor - freetext question.
       let context = await vpipe.getTextMatches(text);
       console.log("Retrieved context:", context)
       context = context.toString();
-      prompt = `${text}
-                Try to answer this question using the additional context below. If the context does not contain the answer, reply "I don't have the answer to this question."
-                Context: ${context}`
+      prompt = `Question: ${text}
+                Try to answer this question using the additional context provided. If you cannot find the answer, reply "I don't have the answer to this question."
+                Additional context: ${context}`
     }
     console.log("Trying prompt:", prompt)
-    const output = await this.cpipe.askChatbot(prompt);
+    let output = await this.cpipe.askChatbot(prompt);
     console.log("Received output:", output)
+    if (output.at(0) === `"` && output.at(-1) === `"`) {
+      // handle chatbot returning text wrapped in quotations
+      output = output.slice(1, -1)
+    }
+    if (text === "MORE INFO" && this.last_bot === output) {
+      // handle chatbot repeating same step after more info.
+      output = "There is no additional information available at this stage. Try asking a specific question, or move to the next step."
+    }
+    this.last_bot = output
     return output;
   }
 
